@@ -1,4 +1,4 @@
-package Plack::Middleware::SubSpec::LimitRate;
+package Plack::Middleware::Periuk::LimitRate;
 
 use 5.010;
 use strict;
@@ -7,7 +7,7 @@ use warnings;
 use parent qw(Plack::Middleware);
 #use Plack::Util::Accessor qw();
 
-use Plack::Util::SubSpec qw(errpage);
+use Plack::Util::Periuk qw(errpage);
 
 # VERSION
 
@@ -33,7 +33,7 @@ __END__
  use Plack::Builder;
 
  builder {
-    enable "SubSpec::LimitRate";
+    enable "Periuk::LimitRate";
  };
 
 

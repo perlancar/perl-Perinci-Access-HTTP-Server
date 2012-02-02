@@ -1,4 +1,4 @@
-package Plack::Middleware::SubSpec::LogAccess;
+package Plack::Middleware::Periuk::LogAccess;
 
 use 5.010;
 use strict;
@@ -167,7 +167,7 @@ __END__
  use Plack::Builder;
 
  builder {
-     enable "SubSpec::LogAccess", log_path => "/path/to/api-access.log";
+     enable "Periuk::LogAccess", log_path => "/path/to/api-access.log";
  }
 
 

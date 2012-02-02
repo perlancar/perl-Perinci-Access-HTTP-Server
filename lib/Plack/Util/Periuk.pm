@@ -1,4 +1,4 @@
-package Plack::Util::SubSpec;
+package Plack::Util::Periuk;
 
 use 5.010;
 use strict;
@@ -10,6 +10,7 @@ our @EXPORT_OK = qw(errpage allowed);
 
 # VERSION
 
+# XXX use requested format, e.g. JSON
 sub errpage {
     my ($msg, $code) = @_;
     $msg .= "\n" unless $msg =~ /\n\z/;

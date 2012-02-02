@@ -1,4 +1,4 @@
-package Plack::Middleware::SubSpec::HandleCommand;
+package Plack::Middleware::Periuk::HandleCommand;
 
 use 5.010;
 use strict;
@@ -13,7 +13,7 @@ use Plack::Util::Accessor qw(
 
 use Data::Rmap;
 use Log::Any::Adapter;
-use Plack::Util::SubSpec qw(errpage allowed);
+use Plack::Util::Periuk qw(errpage allowed);
 use Scalar::Util qw(blessed);
 use Sub::Spec::Util qw(str_log_level);
 use Time::HiRes qw(gettimeofday);
@@ -194,7 +194,7 @@ sub call {
  use Plack::Builder;
 
  builder {
-     enable "SubSpec::HandleCommand";
+     enable "Periuk::HandleCommand";
  };
 
 

@@ -1,4 +1,4 @@
-package Plack::Middleware::SubSpec::ParseRequest;
+package Plack::Middleware::Periuk::ParseRequest;
 
 use 5.010;
 use strict;
@@ -26,7 +26,7 @@ use Plack::Util::Accessor qw(
                         );
 
 use JSON;
-use Plack::Util::SubSpec qw(errpage allowed);
+use Plack::Util::Periuk qw(errpage allowed);
 use Sub::Spec::GetArgs::Array qw(get_args_from_array);
 use Sub::Spec::URI;
 use URI::Escape;
@@ -273,7 +273,7 @@ sub call {
  use Plack::Builder;
 
  builder {
-     enable "SubSpec::ParseRequest",
+     enable "Periuk::ParseRequest",
          uri_pattern => m!^/api/v1/(?<module>[^?]+)?/?(?<sub>[^?/]+)?!,
          allowed_modules => qr/^My::API/;
  };
@@ -382,8 +382,8 @@ required for parsing from PATH_INFO).
 
 removed from URI before args are extracted. Also, parsing arguments from path
 info (array form, C</arg0/arg1/...>) requires that we have the sub spec first.
-So we need to execute the L<Plack::Middleware::SubSpec::LoadSpec> first. The
-actual parsing is done by L<Plack::Middleware::SubSpec::ParseArgsFromPathInfo>
+So we need to execute the L<Plack::Middleware::Periuk::LoadSpec> first. The
+actual parsing is done by L<Plack::Middleware::Periuk::ParseArgsFromPathInfo>
 first.
 
 =item * accept_phps => BOOL (default 1)
