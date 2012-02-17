@@ -1,18 +1,16 @@
-#!/usr/bin/perl
+0#!/usr/bin/perl
 
-package servepm; # just to make PodWeaver happy
+package periuk; # just to make PodWeaver happy
 
 use 5.010;
 use strict;
 use warnings;
 use Log::Any::App qw($log);
-use Module::List qw(list_modules);
-use Module::Load;
+use Perinci::Access;
+use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
-use Plack::Util::SubSpec qw(errpage);
-use Sub::Spec::CmdLine ();
-use Sub::Spec::Gen::ForModule qw(gen_spec_for_module);
+use Perinci::Sub::Gen::ForModule qw(gen_meta_for_module);
 
 # VERSION
 
@@ -216,23 +214,23 @@ sub serve {
     [200, "OK"];
 }
 
-Sub::Spec::CmdLine::run(module=>'servepm', sub=>'serve', load=>0);
+Perinci::CmdLine::run('/periuk/serve');
 1;
-#ABSTRACT: Serve Perl modules over HTTP(S) using the Sub::Spec::HTTP protocol
+#ABSTRACT: Serve Perl modules over HTTP(S) using the Riap::HTTP protocol
 
 =head1 SYNOPSIS
 
  # serve modules over HTTP, using default options (HTTP port 5000)
- $ servepm Foo::Bar Baz::*
+ $ periuk Foo::Bar Baz::*
 
  # you can now do
  $ curl 'http://localhost:5000/api/Baz::Sub/func1?arg1=1&arg2=2'
  [200,"OK",{"The":"result","...":"..."}]
 
  # or use the Perl client
- $ perl -MSub::Spec::URI -e'
-     my $r = Sub::Spec::URI->new("http://localhost:5000/api/Foo::Bar/func2");
-     $r->call(arg1 => 1, arg2 => 2);'
+ $ perl -MPerinci::Access -e'
+     my $pa = Perinci::Access->new;
+     $pa->request(arg1 => "http://localhost:5000/api/Foo::Bar/func2);'
 
 
  ### some other servepm options:
@@ -276,12 +274,10 @@ L<Gepok>
 
 L<Plack::Runner>, L<plackup>
 
-L<Sub::Spec::Gen::ForModule>
+L<Perinci::Sub::Gen::ForModule>
 
-L<Sub::Spec::HTTP>
+<Riap::HTTP>
 
-L<Sub::Spec::HTTP::Server>
-
-L<Sub::Spec::URI>, L<Sub::Spec::URI::http>
+L<Perinci::Access::HTTP::Client>
 
 =cut
