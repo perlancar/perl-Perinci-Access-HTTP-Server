@@ -1,4 +1,4 @@
-package Plack::Middleware::Periuk::HandleCommand;
+package Plack::Middleware::Periuk::Request;
 
 use 5.010;
 use strict;
@@ -6,8 +6,6 @@ use warnings;
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
-                                default_output_format
-                                allowed_output_formats
                                 time_limit
                         );
 
@@ -67,30 +65,6 @@ sub format_html {
             "text/html");
 }
 
-sub postprocess_result {
-    my ($self, $res) = @_;
-
-    Data::Rmap::rmap_ref(
-        sub {
-            # trick to defeat circular-checking, so in case
-            # of [$dt, $dt], both will be converted
-            #$_[0]{seen} = {};
-
-            return unless blessed($_);
-
-            # convert DateTime objects to epoch
-            if (UNIVERSAL::isa($_, "DateTime")) {
-                $_ = $_->epoch;
-                return;
-            }
-
-            # stringify objects
-            $_ = "$_";
-       }, $res
-    );
-    $res;
-}
-
 sub call {
     my ($self, $env) = @_;
 
@@ -139,8 +113,8 @@ sub call {
         };
 
         my $writer;
-        my $loglvl  = str_log_level($ssreq->{'log_level'});
-        my $marklog = $ssreq->{'mark_log'};
+        my $loglvl  = str_log_level($ssreq->{'loglevel'});
+        my $marklog = $ssreq->{'marklog'};
         my $cmd_res;
         if ($loglvl) {
             $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
@@ -186,7 +160,7 @@ sub call {
 }
 
 1;
-# ABSTRACT: Handle command
+# ABSTRACT: Send Riap request
 
 =head1 SYNOPSIS
 
@@ -194,15 +168,18 @@ sub call {
  use Plack::Builder;
 
  builder {
-     enable "Periuk::HandleCommand";
+     enable "PeriAHS::Request";
  };
 
 
 =head1 DESCRIPTION
 
-This module executes command specified in $env->{"ss.request"}{command} by
-calling handle_<cmdname>() in Sub::Spec::HTTP::Server::Command::<cmdname>. The
-result is then put in $env->{"ss.request"}{response}.
+This middleware sends Riap request (C<$env->{"riap.request"}>) to Riap client
+(L<Perinci::Access>). This middleware is the "meat" of the application and
+should be put after all the parsing, authentication, and authorization
+middlewares.
+
+The result will be put in C<$env->{"riap.response"}>.
 
 
 =head1 CONFIGURATIONS

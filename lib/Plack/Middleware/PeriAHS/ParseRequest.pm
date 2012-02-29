@@ -1,4 +1,4 @@
-package Plack::Middleware::Periuk::ParseRequest;
+package Plack::Middleware::PeriAHS::ParseRequest;
 
 use 5.010;
 use strict;
@@ -7,28 +7,16 @@ use warnings;
 use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util::Accessor qw(
-                                uri_pattern
-
-                                allowed_uri_schemes
-                                allowed_commands
-                                allowed_modules
-
-                                parse_args_from_web_form
-                                parse_args_from_path_info
-                                per_arg_encoding
-
                                 accept_yaml
-                                accept_phps
-
+                                uri_pattern
+                                parse_web_form
+                                parse_path_info
                                 allow_logs
-
-                                after_parse
                         );
 
 use JSON;
+use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::Periuk qw(errpage allowed);
-use Sub::Spec::GetArgs::Array qw(get_args_from_array);
-use Sub::Spec::URI;
 use URI::Escape;
 
 # VERSION
@@ -38,27 +26,30 @@ my $json = JSON->new->allow_nonref;
 sub prepare_app {
     my $self = shift;
 
-    $self->{uri_pattern} //= qr/.?/;
-
-    $self->{allowed_commands}    //= [qw/about call spec
-                                           list_mods list_subs usage/];
-    $self->{allowed_modules}     //= [];
-    $self->{allowed_uri_schemes} //= ['pm'];
-
-    $self->{parse_args_from_web_form}  //= 1;
-    $self->{parse_args_from_path_info} //= 1;
-    $self->{per_arg_encoding}          //= 1;
-
-    $self->{accept_yaml} //= 1;
-    $self->{accept_phps} //= 1;
-
-    $self->{allow_logs} //= 1;
+    $self->{accept_yaml}     //= 0;
+    $self->{uri_pattern}     //= qr/.?/;
+    $self->{parse_web_form}  //= 1;
+    $self->{parse_path_info} //= 0;
+    $self->{allow_logs}      //= 1;
 }
 
-my @known_ss_req_keys = qw(command uri args output_format
-                           log_level mark_log);
 sub call {
     my ($self, $env) = @_;
+
+    $env->{"riap.request"} //= {};
+    my $rr = $env->{"riap.request"};
+
+    my $acp = $env->{HTTP_ACCEPT} // "";
+    my $fmt;
+    if ($acp =~ m!/html!) {
+        $fmt = "html";
+    } elsif ($acp =~ m!text/!) {
+        $fmt = "text";
+    } else {
+        $fmt = "json";
+    }
+    $rr->{fmt} //= $fmt;
+
 
     my $req_uri = $env->{REQUEST_URI};
     my $pat     = $self->uri_pattern;
@@ -71,7 +62,7 @@ sub call {
 
     # get SS request keys from HTTP headers (required by spec)
     for my $k0 (keys %$env) {
-        next unless $k0 =~ /^HTTP_X_SS_REQ_(.+)(_J_)?$/;
+        next unless $k0 =~ /^HTTP_X_RIAP_(.+)(_J_)?$/;
         my $v = $env->{$k0};
         my ($k, $encj) = (lc($1), $2);
         if ($k ~~ @known_ss_req_keys) {
@@ -265,7 +256,7 @@ sub call {
 }
 
 1;
-# ABSTRACT: Parse HTTP request into SS request
+# ABSTRACT: Parse Riap request from HTTP request
 
 =head1 SYNOPSIS
 
@@ -273,30 +264,28 @@ sub call {
  use Plack::Builder;
 
  builder {
-     enable "Periuk::ParseRequest",
-         uri_pattern => m!^/api/v1/(?<module>[^?]+)?/?(?<sub>[^?/]+)?!,
-         allowed_modules => qr/^My::API/;
+     enable "PeriAHS::ParseRequest",
+         match_uri => m!^/api/(?<uri>[^?]+)?!;
  };
 
 
 =head1 DESCRIPTION
 
-This middleware parses SS request from HTTP request (PSGI environment) and
-should normally be the first middleware put in the stack.
+This middleware's task is to parse Riap request from HTTP request (PSGI
+environment) and should normally be the first middleware put in the stack.
 
 =head2 Parsing result
 
-The result of parsing will be put in 'ss.request' PSGI environment key.
+The result of parsing will be put in C<$env->{"riap.request"}> hashref.
 
 =head2 Parsing process
 
-B<From HTTP header and request body>. The parsing is done as per
-L<Sub::Spec::HTTP> specification. First, all C<X-SS-Req-*> request headers are
-parsed for SS request key. When an unknown header is found, HTTP 400 error is
-returned. Then, request body is read for arguments. 'application/json' document
-type is accepted, and also 'text/yaml' (if C<accept_yaml> configuration is
-enabled) and 'application/vnd.php.serialized' (if C<accept_phps> configuration
-is enabled).
+B<From HTTP header and request body>. First parsing is done as per L<Riap::HTTP>
+specification's requirement. All C<X-Riap-*> request headers are parsed for Riap
+request key. When an unknown header is found, HTTP 400 error is returned. Then,
+request body is read for C<args>. 'application/json' document type is accepted,
+and also 'text/yaml' (if C<accept_yaml> configuration is enabled) and
+'application/vnd.php.serialized' (if C<accept_phps> configuration is enabled).
 
 Additionally, the following are also done:
 
@@ -346,35 +335,31 @@ An unsuccessful parsing will result in HTTP 400 error.
 
 =over 4
 
-=item * uri_pattern => REGEX (default qr/.?/)
+=item * accept_yaml => BOOL (default 0)
 
-Regexp with named captures to match against URI, to extract SS request keys
-from. Additionally, C<module> and C<sub> are also converted into 'pm' URI, if
-C<uri> is not already specified.
+Whether to accept YAML-encoded data in HTTP request body for C<args> Riap
+request key. If you only want to deal with JSON, keep this off.
+
+=item * match_uri => REGEX (default qr/.?/)
+
+Regexp with named captures to match against URI, to extract Riap request keys
+from.
 
 If regexp doesn't match, a 400 error response will be generated.
 
-=item * allowed_uri_schemes => ARRAY|REGEX (default ['pm'])
+=item * parse_req_from_web_form => BOOL (default 1)
 
-Which URI schemes are allowed. If SS request's C<uri> has a scheme not on this
-list, a HTTP 403 error will be returned.
-
-=item * allowed_commands => ARRAY|REGEX (default [qw/about call help list_mods list_subs spec usage/])
-
-Which commands to allow. Default is all commands. If you want to disable certain
-commands, exclude it from the list. In principle the most important command is
-'call', while the others are just helpers.
-
-=item * allowed_modules => ARRAY|REGEX (default [])
-
-Which modules to allow. Needs to be set.
+Whether to parse Riap request keys from web form (GET/POST) variable of the name
+C<-x-riap-*> (notice the prefix dash). If a request key is already defined (e.g.
+from C<X-Riap-*> HTTP request header), it will be skipped.
 
 =item * parse_args_from_web_form => BOOL (default 1)
 
-Whether to parse arguments from web form (GET/POST parameters). If an argument
-is already defined (e.g. via X-SS-Req-* HTTP header), it will be skipped.
+Whether to parse C<args> keys from web form (GET/POST) variable. If an argument
+is already defined (e.g. via <X-Riap-Args> HTTP request header or
+C<-x-riap-args> web form variable), it will be skipped.
 
-=item * parse_args_from_path_info => BOOL (default 1)
+=item * parse_args_from_path_info => BOOL (default 0)
 
 Whether to parse arguments from path info. This will only be done if C<uri>
 contains module and subroutine name, so its spec can be retrieved (spec is
@@ -386,29 +371,6 @@ So we need to execute the L<Plack::Middleware::Periuk::LoadSpec> first. The
 actual parsing is done by L<Plack::Middleware::Periuk::ParseArgsFromPathInfo>
 first.
 
-=item * accept_phps => BOOL (default 1)
-
-Whether to accept PHP serialization-encoded data (either in GET/POST request
-variables, etc). If you only want to deal with, say, JSON encoding, you might
-want to turn this off.
-
-=item * accept_yaml => BOOL (default 1)
-
-Whether to accept YAML-encoded data (either in GET/POST request variables, etc).
-If you only want to deal with, say, JSON encoding, you might want to turn this
-off.
-
-=item * per_arg_encoding => BOOL (default 1)
-
-Whether we should allow each GET/POST request variable to be encoded, e.g.
-http://foo?arg1:j=%5B1,2,3%5D ({arg1=>[1, 2, 3]}).
-
-=item * allow_logs => BOOL (default 1)
-
-Whether to allow request for returning log messages (request option 'log_level'
-with value larger than 0). You might want to turn this off on production
-servers.
-
 =item * after_parse => CODE
 
 If set, the specified code will be called with arguments ($self, $env) to allow
@@ -419,8 +381,6 @@ doing more parsing/checks.
 
 =head1 SEE ALSO
 
-L<Sub::Spec::HTTP>
-
-L<Sub::Spec::HTTP::Client>
+L<Riap::HTTP>
 
 =cut

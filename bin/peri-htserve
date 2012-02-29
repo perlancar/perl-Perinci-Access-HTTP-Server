@@ -1,12 +1,13 @@
 0#!/usr/bin/perl
 
-package periuk; # just to make PodWeaver happy
+package peri_htserve; # just to make PodWeaver happy
 
 use 5.010;
 use strict;
 use warnings;
 use Log::Any::App qw($log);
 use Perinci::Access;
+use Perinci::Access::InProcess;
 use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
@@ -17,24 +18,26 @@ use Perinci::Sub::Gen::ForModule qw(gen_meta_for_module);
 our %SPEC;
 
 $SPEC{serve} = {
-    summary => 'Serve Perl modules over HTTP(S) using '.
-        'the Sub::Spec::HTTP protocol',
+    summary => 'Serve Perl modules over HTTP(S) using Riap::HTTP protocol',
     description => <<'_',
 
 This is a simple command-line front-end for making Perl modules accessible over
-HTTP(S).
-
-It uses Plack::Runner to run PSGI application with the Gepok PSGI server. It is
-not as flexible as using the Plack::Middleware::SubSpec::* middlewares directly,
-but it only requires a single command to get started.
-
-You specify Perl modules to serve. They can be preloaded if you want. If a
-module does not contain Sub::Spec specs, it will be generated automatically
-using Sub::Spec::Gen::ForModule.
+HTTP(S), using the Riap::HTTP protocol. First the specified Perl modules will be
+loaded. Modules which do not contain Rinci metadata will be equipped with
+metadata using Perinci::Sub::Gen::ForModule. After that, a PSGI application will
+be run with the Gepok or Starman PSGI server. The PSGI application serves
+requests for function calls (or other kinds of Riap request) over HTTP. Perl
+modules not specified in the command-line arguments will not be accessible,
+since Perinci::Access::InProcess is used with load=>1.
 
 Modules can be accessed using URL:
 
  http://HOSTNAME:PORT/api/MODULE/FUNCTION?ARG1=VAL1&...
+
+This program is not recommended to be used in production, and there are not many
+configuration options provided. For production, it is recommended that you
+construct your own PSGI application and compose the
+Plack::Middleware::Perinci::* middlewares directly.
 
 _
     args => {
@@ -42,31 +45,22 @@ _
             of => 'str*',
             arg_pos => 0,
             arg_greedy => 1,
-            summary => 'List of modules to serve',
+            summary => 'List of modules to load',
             description => <<'_',
 
 Either specify exact module name or one using wildcard (e.g. 'Foo::Bar::*', in
-which Module::List will be used to list all modules under 'Foo::Bar::').
-
-Request to modules not in this list will be rejected.
+which Module::List will be used to load all modules under 'Foo::Bar::').
 
 _
         }],
-        preload => ['bool' => {
-            default => 0,
-            summary => 'Whether to preload Perl modules',
-        }],
-        ss_access_log_path => ['str' => {
-            summary => 'Path for request access log file',
+        riap_access_log_path => ['str' => {
+            summary => 'Path for Riap request access log file',
             description => <<'_',
-Default is ~/servepm-ss_access.log
+Default is ~/peri-htserve-riap_access.log
 _
         }],
         server => ['array*' => {
             summary => 'Choose PSGI server',
-            arg_aliases => {
-                s => {},
-            },
             description => <<'_',
 
 Currently only Starman or Gepok is supported. Default is Gepok.
@@ -98,11 +92,11 @@ _
         }],
         daemonize => ['bool' => {
             default => 0,
-            #arg_aliases => {
-            #    D => {},
-            #},
             summary => 'If true, will daemonize into background',
         }],
+
+        D => {summary=>'Equivalent to ', alias_for=>'daemonize'},
+
     },
 };
 sub serve {
@@ -113,8 +107,8 @@ sub serve {
 
     $log->infof("Starting server (using %s) ...", $server);
 
-    my $ss_access_log_path = $args{ss_access_log_path} //
-        "$ENV{HOME}/servepm-ss_access.log";
+    my $riap_access_log_path = $args{riap_access_log_path} //
+        "$ENV{HOME}/peri-htserve-ss_access.log";
 
     my @modules;
     for my $m (@{$args{modules}}) {
@@ -125,23 +119,25 @@ sub serve {
             push @modules, $m;
         }
     }
-    $log->debugf("Modules to serve: %s", \@modules);
-
-    if ($args{preload}) {
-        $log->infof("Preloading modules ...");
-        for my $m (@modules) {
-            $log->infof("Loading module %s ...", $m);
-            eval { load $m };
-            return [500, "Failed to load module $m: $@"] if $@;
-        }
+    $log->debugf("Modules to load: %s", \@modules);
+    for my $m (@modules) {
+        $log->infof("Loading module %s ...", $m);
+        eval { load $m };
+        return [500, "Failed to load module $m: $@"] if $@;
     }
+
+    my $pa = Perinci::Access->new(
+        handlers => {
+            pm => Perinci::Access::InProcess->new(load=>0),
+        }
+    );
 
     my $app =
         builder {
-            enable "SubSpec::LogAccess",
-                log_path => $ss_access_log_path;
+            enable "Perinci::LogAccess",
+                log_path => $riap_access_log_path;
 
-            enable "SubSpec::ParseRequest",
+            enable "Perinci::ParseRequest",
                 uri_pattern => qr!^/api
                                   (?:/(?<module>[^?/]+)
                                       (?:/(?<sub>[^?/]+))?
@@ -149,24 +145,24 @@ sub serve {
                 allowed_modules => \@modules,
                 after_parse => sub {
                     my ($self, $env) = @_;
-                    my $m = $env->{"ss.uri_pattern_matches"};
+                    my $m = $env->{"peri.uri_pattern_matches"};
                     my $mod = $m->{module};
+                    $mod =~ s!::!/!g;
                     if ($mod) {
-                        my $uri = "pm:$mod" .
-                            ($m->{sub} ? "/$m->{sub}" : "");
-                        $env->{"ss.request"}{uri} = Sub::Spec::URI->new($uri);
+                        my $uri = "pm:/$mod/" . ($m->{sub} // "");
+                        $env->{"riap.request"}{uri} = $uri;
                     }
                 };
 
-            # automatically generate spec for modules
+            # automatically generate metadata for modules
             enable sub {
                 my $app = shift;
                 sub {
                     my $env     = shift;
-                    my $ssreq   = $env->{"ss.request"};
-                    $log->tracef("SS request: %s", $ssreq);
-                    my $command = $ssreq->{command};
-                    my $uri     = $ssreq->{uri};
+                    my $req     = $env->{"riap.request"};
+                    $log->tracef("Riap request: %s", $req);
+                    my $action  = $req->{action};
+                    my $uri     = $req->{uri};
                     if ($uri && $uri->proto eq 'pm' &&
                             $command =~ /^(call|spec)$/) {
                         my $mod = $uri->module;
@@ -221,28 +217,25 @@ Perinci::CmdLine::run('/periuk/serve');
 =head1 SYNOPSIS
 
  # serve modules over HTTP, using default options (HTTP port 5000)
- $ periuk Foo::Bar Baz::*
+ $ peri-htserve Foo::Bar Baz::*
 
  # you can now do
- $ curl 'http://localhost:5000/api/Baz::Sub/func1?arg1=1&arg2=2'
+ $ curl 'http://localhost:5000/api/Baz/SubMod/func1?arg1=1&arg2=2'
  [200,"OK",{"The":"result","...":"..."}]
 
  # or use the Perl client
  $ perl -MPerinci::Access -e'
      my $pa = Perinci::Access->new;
-     $pa->request(arg1 => "http://localhost:5000/api/Foo::Bar/func2);'
+     my $res = $pa->request(call=>"http://localhost:5000/api/Foo/Bar/func2");'
 
 
- ### some other servepm options:
-
- # preload modules
- $ servepm --preload Foo::Bar ...
+ ### some other peri-htserve options:
 
  # change ports/etc (see http_ports, https_ports, and unix_sockets in Gepok doc)
- $ servepm --http-ports "localhost:5000,*:80" ...
+ $ peri-htserve --http-ports "localhost:5000,*:80" ...
 
  # see all available options
- $ servepm --help
+ $ peri-htserve --help
 
 
 =head1 DESCRIPTION
@@ -256,28 +249,30 @@ For now, please see source code for more details (or --help).
 
 In raw HTTP, you can send complex argument by encoding it in JSON, e.g.:
 
- $ curl 'http://localhost:5000/api/Foo::Bar/func?array:j=[1,2,3]'
+ $ curl 'http://localhost:5000/api/Foo/Bar/func?array:j=[1,2,3]'
 
 Notice the ":j" suffix after parameter name.
 
 
 =head1 TODO
 
-* Pass more plackup options.
+=over 4
 
-* Pass more server options.
+=item * Pass more Plackup options.
+
+=item * Pass more PSGI server options.
+
+=back
 
 
 =head1 SEE ALSO
 
-L<Gepok>
+L<Riap::HTTP>
 
-L<Plack::Runner>, L<plackup>
+L<Perinci::Access>, L<Perinci::Access::HTTP::Client>
 
-L<Perinci::Sub::Gen::ForModule>
+PSGI servers used: L<Gepok>, L<Starman>
 
-<Riap::HTTP>
-
-L<Perinci::Access::HTTP::Client>
+L<Plack::Runner>
 
 =cut
