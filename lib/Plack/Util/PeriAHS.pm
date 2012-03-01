@@ -22,13 +22,13 @@ sub errpage {
 
     my $fmt = $env->{'riap.request'}{fmt} // $env->{_default_fmt} // 'json';
 
-    if ($fmt eq 'html') {
+    if ($fmt eq 'HTML') {
         return [
             200,
             ["Content-Type" => "text/html"],
             ["<h1>Error $res->[0]</h1>\n\n$res->[1]\n"],
         ];
-    } elsif ($fmt =~ /^text/) {
+    } elsif ($fmt =~ /^(?:Text|SimpleText)/) {
         return [
             200,
             ["Content-Type" => "text/plain"],

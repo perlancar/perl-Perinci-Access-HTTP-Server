@@ -1,3 +1,9 @@
+# make sure that, this is not the ideal place to do it, but this is the least
+# worst, IMO.
+package Data::Format::Pretty::json;
+require Data::Format::Pretty::CompactJSON;
+*format_pretty = \&Data::Format::Pretty::CompactJSON::format_pretty;
+
 package Plack::Middleware::PeriAHS::ParseRequest;
 
 use 5.010;
@@ -44,11 +50,12 @@ sub call {
     # first determine the default output format (fmt), so we can return error
     # page in that format
     my $acp = $env->{HTTP_ACCEPT} // "";
+    my $ua  = $env->{HTTP_USER_AGENT} // "";
     my $fmt;
     if ($acp =~ m!/html!) {
-        $fmt = "html";
-    } elsif ($acp =~ m!text/!) {
-        $fmt = "text";
+        $fmt = "HTML";
+    } elsif ($acp =~ m!text/! || $ua =~ m!Wget/|curl/!) {
+        $fmt = "Text";
     } else {
         $fmt = "json";
     }

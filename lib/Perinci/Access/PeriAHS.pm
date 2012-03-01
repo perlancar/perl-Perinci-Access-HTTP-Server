@@ -1,7 +1,3 @@
-package Data::Format::Pretty::json;
-require Data::Format::Pretty::JSON;
-*format_pretty = \&Data::Format::Pretty::JSON::format_pretty;
-
 package Perinci::Access::PeriAHS;
 
 use Perinci::Access;
