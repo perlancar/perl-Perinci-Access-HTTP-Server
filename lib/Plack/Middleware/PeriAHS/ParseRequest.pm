@@ -209,14 +209,14 @@ sub call {
     # also put Riap client for later phases
     $env->{_pa} = $self->{_pa};
 
-    # normalize into URI object
-    $rr->{uri} = $self->{_pa}->_normalize_uri($rr->{uri});
-
     # sanity: check required keys
     for (qw/uri v action/) {
         defined($rr->{$_}) or return errpage(
             $env, [500, "Required Riap request key '$_' has not been defined"]);
     }
+
+    # normalize into URI object
+    $rr->{uri} = $self->{_pa}->_normalize_uri($rr->{uri});
 
     # continue to app
     $self->app->($env);
