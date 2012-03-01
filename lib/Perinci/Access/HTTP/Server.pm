@@ -26,6 +26,22 @@ of command.
 To get started, currently see the source code for B<peri-htserve> and each
 middleware's documentation.
 
+For formatting response, PeriAHS uses L<Data::Format::Pretty>.
+
+
+=head1 ADDITIONAL RINCI REQUEST KEYS
+
+Aside those specified by L<Riap> and L<Riap::HTTP>, below are additional Rinci
+request keys recognized by PeriAHS:
+
+=over 4
+
+=item * fmt_opts => HASH
+
+Formatting options, passed to Data::Format::Pretty::format_pretty().
+
+=back
+
 
 =head1 FAQ
 
@@ -110,15 +126,9 @@ Take a look at L<Serabi>.
 
 =head2 I want to support another output format (e.g. XML, MessagePack, etc).
 
-Add a format_<fmtname> method to L<Plack::Middleware::PeriAHS::HandleCommand>.
-The method accepts sub response and is expected to return a tuplet ($output,
-$content_type).
-
-Note that you do not have to modify the Plack/Middleware/Periuk/HandleCommand.pm
-file itself. You can inject the method from another file.
-
-Also make sure that the output format is allowed (see configuration
-C<allowed_output_formats> in the command handler middleware).
+Just preload the appropriate format modules (like, say,
+L<Data::Format::Pretty::Perl>) in your application. The format will
+automatically be supported.
 
 =head2 I want to automatically reload modules that changed on disk.
 
@@ -128,13 +138,13 @@ L<Module::Reload::Conditional>.
 =head2 I want to authenticate clients.
 
 Enable L<Plack::Middleware::Auth::Basic> (or other authen middleware you prefer)
-before Periuk::ParseRequest.
+before PeriAHS::ParseRequest.
 
-=head2 I want to authorize clients.
+=head2 I want to add access control and/or authorize clients.
 
-Take a look at L<Plack::Middleware::Periuk::Authz::ACL> which allows
-authorization based on various conditions. Normally this is put after
-authentication and before command handling.
+Take a look at L<Plack::Middleware::PeriAHS::ACL> which allows access control
+based on various conditions. Normally this is put after authentication and
+before response creation.
 
 =head2 I want to support new actions.
 
@@ -150,7 +160,7 @@ this.
 
  mount my $app = builder {
      mount "/api" => builder {
-         enable "Periuk::ParseRequest", ...;
+         enable "PeriAHS::ParseRequest", ...;
          ...
      },
      mount "/static" => builder {
@@ -169,11 +179,6 @@ Not only can you serve local modules, you can also serve remote modules
 =head2 Performance tuning
 
 To be written.
-
-
-=head1 TODO
-
-* Improve performance.
 
 
 =head1 SEE ALSO
