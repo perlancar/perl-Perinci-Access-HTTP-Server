@@ -32,13 +32,6 @@ test_ParseRequest_middleware(
             rr        => {v=>1.1, action=>'call', uri=>'pm:/', fmt=>'json'},
         },
         {
-            name      => 'uri_pattern, errpage in json',
-            args      => [GET => '/x'],
-            rr        => undef,
-            ct        => 'application/json',
-            content   => qr/match uri_pattern/,
-        },
-        {
             name      => 'default fmt = html, errpage in html',
             args      => [GET => '/x', ['Accept'=>'text/html']],
             rr        => undef,
@@ -91,6 +84,20 @@ test_ParseRequest_middleware(
                           '{"a":1,"b":[2,3]}'],
             rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
                           fmt=>'json', args=>{}},
+        },
+        {
+            name      => 'uri_pattern',
+            args      => [GET => '/x'],
+            rr        => undef,
+            ct        => 'application/json',
+            content   => qr/match uri_pattern/,
+        },
+        {
+            name      => 'uri_pattern does not override X-Riap-URI header',
+            args      => [GET => '/api/M1/',
+                          ['X-Riap-URI'=>'/M0/']],
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/M0/',
+                          fmt=>'json'},
         },
         {
             name      => 'parse args from body (yaml, default off)',

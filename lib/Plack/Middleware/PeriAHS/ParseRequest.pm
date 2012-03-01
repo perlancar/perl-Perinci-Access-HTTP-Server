@@ -120,7 +120,7 @@ sub call {
         %m = %+;
     }
     for (keys %m) {
-        $rr->{$_} = $m{$_};
+        $rr->{$_} //= $m{$_};
     }
 
     # get ss request key from form variables (optional)
