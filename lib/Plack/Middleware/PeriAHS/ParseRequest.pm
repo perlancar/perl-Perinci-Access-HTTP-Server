@@ -15,7 +15,7 @@ use Plack::Util::Accessor qw(
                         );
 
 use JSON;
-use Perinci::Access;
+use Perinci::Access::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;
@@ -33,7 +33,7 @@ sub prepare_app {
     $self->{parse_path_info} //= 0;
     $self->{allow_logs}      //= 1;
 
-    $self->{_pa} = Perinci::Access->new;
+    $self->{_pa} = Perinci::Access::PeriAHS->new;
 }
 
 sub call {
@@ -216,7 +216,7 @@ sub call {
     }
 
     # normalize into URI object
-    $rr->{uri} = $self->{_pa}->_normalize_uri($rr->{uri});
+    $rr->{uri} = $self->{_pa}{pa}->_normalize_uri($rr->{uri});
 
     # continue to app
     $self->app->($env);
