@@ -18,9 +18,9 @@ use JSON;
 my $json = JSON->new->allow_nonref;
 
 sub errpage {
-    my ($res, $env) = @_;
+    my ($env, $res) = @_;
 
-    my $fmt = $env->{'riap.request'}{fmt} // 'json';
+    my $fmt = $env->{'riap.request'}{fmt} // $env->{_default_fmt} // 'json';
 
     if ($fmt eq 'html') {
         return [
@@ -28,7 +28,7 @@ sub errpage {
             ["Content-Type" => "text/html"],
             ["<h1>Error $res->[0]</h1>\n\n$res->[1]\n"],
         ];
-    } elsif ($fmt eq 'text/pretty' || $fmt eq 'text/nopretty') {
+    } elsif ($fmt =~ /^text/) {
         return [
             200,
             ["Content-Type" => "text/plain"],
@@ -44,3 +44,5 @@ sub errpage {
 }
 
 1;
+#ABSTRACT: Utility routines
+

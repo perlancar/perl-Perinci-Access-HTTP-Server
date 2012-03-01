@@ -1,4 +1,4 @@
-0#!/usr/bin/perl
+#!/usr/bin/perl
 
 package peri_htserve; # just to make PodWeaver happy
 
