@@ -1,4 +1,4 @@
-package Plack::Middleware::PeriAHS::Access;
+package Plack::Middleware::PeriAHS::CheckAccess;
 
 use 5.010;
 use strict;
