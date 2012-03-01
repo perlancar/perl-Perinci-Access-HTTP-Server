@@ -28,7 +28,7 @@ sub prepare_app {
     my $self = shift;
 
     $self->{accept_yaml}     //= 0;
-    $self->{uri_pattern}     //= qr/.?/;
+    $self->{uri_pattern}     //= qr/(?<uri>[^?]*)/;
     $self->{parse_form}      //= 1;
     $self->{parse_path_info} //= 0;
     $self->{allow_logs}      //= 1;
@@ -297,7 +297,7 @@ An unsuccessful parsing will result in HTTP 400 error.
 Whether to accept YAML-encoded data in HTTP request body and form for C<args>
 Riap request key. If you only want to deal with JSON, keep this off.
 
-=item * uri_pattern => REGEX or [REGEX, CODE] (default qr/.?/)
+=item * uri_pattern => REGEX or [REGEX, CODE] (default qr/(?<uri>[^?]*)/)
 
 This provides an easy way to extract Riap request keys (usually C<uri>) from
 HTTP request's URI. Put named captures inside the regex and it will set the
