@@ -229,7 +229,7 @@ sub call {
 
  builder {
      enable "PeriAHS::ParseRequest",
-         match_uri => m!^/api/(?<uri>[^?]+)?!;
+         match_uri => m!^/api(?<uri>/[^?]*)!;
  };
 
 
