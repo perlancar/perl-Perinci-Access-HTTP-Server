@@ -189,7 +189,7 @@ sub call {
 
             my $pi = $env->{PATH_INFO} // "";
             $pi =~ s!^/+!!;
-            my @pi = split m!/+!, $pi;
+            my @pi = map {uri_unescape($_)} split m!/+!, $pi;
             $res = get_args_from_array(array=>\@pi, meta=>$meta);
             return errpage(
                 $env, [500, "Bad metadata for function $rr->{uri}: ".

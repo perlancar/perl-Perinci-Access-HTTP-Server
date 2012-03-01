@@ -214,9 +214,10 @@ test_ParseRequest_middleware(
     requests => [
         {
             name      => 'parse args from PATH_INFO (turned on)',
-            args      => [GET => '/ga/Test::ParseRequest/add2/10/20'],
+            args      => [GET => '/ga/Test::ParseRequest/add2/10%2E5/20%2E5'],
             rr        => {v=>1.1, action=>'call', fmt=>'json',
-                          uri=>'/Test/ParseRequest/add2', args=>{a=>10, b=>20},
+                          uri=>'/Test/ParseRequest/add2',
+                          args=>{a=>10.5, b=>20.5},
                       },
         },
     ],
