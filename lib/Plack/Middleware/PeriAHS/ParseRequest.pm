@@ -209,6 +209,9 @@ sub call {
     # also put Riap client for later phases
     $env->{_pa} = $self->{_pa};
 
+    # normalize into URI object
+    $rr->{uri} = $self->{_pa}->_normalize_uri($rr->{uri});
+
     # sanity: check required keys
     for (qw/uri v action/) {
         defined($rr->{$_}) or return errpage(

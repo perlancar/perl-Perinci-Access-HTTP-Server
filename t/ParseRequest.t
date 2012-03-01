@@ -29,7 +29,7 @@ test_ParseRequest_middleware(
         {
             name      => 'default Riap request keys',
             args      => [GET => '/api/'],
-            rr        => {v=>1.1, action=>'call', uri=>'/', fmt=>'json'},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/', fmt=>'json'},
         },
         {
             name      => 'uri_pattern, errpage in json',
@@ -56,7 +56,7 @@ test_ParseRequest_middleware(
             name      => 'request keys from X-Riap-* header',
             args      => [GET => '/api/', ['X-Riap-Foo' => 42,
                                            'X-Riap-Bar-Baz-j-'=>'[2]']],
-            rr        => {v=>1.1, action=>'call', uri=>'/', fmt=>'json',
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/', fmt=>'json',
                           foo=>42, bar_baz=>[2]},
         },
         {
@@ -72,8 +72,8 @@ test_ParseRequest_middleware(
             args      => [POST => '/api/Foo/bar',
                           ['Content-Type'=>'application/json'],
                           '{"a":1,"b":[2,3]}'],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'json',
-                          args=>{a=>1, b=>[2,3]}},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'json', args=>{a=>1, b=>[2,3]}},
         },
         {
             name      => 'sanity check for args',
@@ -89,8 +89,8 @@ test_ParseRequest_middleware(
                           ['X-Riap-Args-j-'=>'{}',
                            'Content-Type'=>'application/json'],
                           '{"a":1,"b":[2,3]}'],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'json',
-                          args=>{}},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'json', args=>{}},
         },
         {
             name      => 'parse args from body (yaml, default off)',
@@ -114,8 +114,8 @@ test_ParseRequest_middleware(
         {
             name      => 'parse args + request keys from form (get)',
             args      => [GET => '/api/Foo/bar?a=1&b:j=[2,3]&-riap-foo=bar'],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'json',
-                          foo=>'bar', args=>{a=>1, b=>[2,3]}},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'json', foo=>'bar', args=>{a=>1, b=>[2,3]}},
         },
         {
             name      => 'request/args keys from form does not override '.
@@ -123,8 +123,9 @@ test_ParseRequest_middleware(
             args      => [GET => '/api/Foo/bar?a=2&b:j=[2,3]&-riap-foo=bar&'.
                       '-riap-fmt=text&-riap-baz=qux',
                           ['X-Riap-Args-j-'=>'{"a":1}', 'X-Riap-Baz'=>1]],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'text',
-                          foo=>'bar', baz=>1, args=>{a=>1, b=>[2,3]}},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'text', foo=>'bar', baz=>1,
+                          args=>{a=>1, b=>[2,3]}},
         },
 
     ],
@@ -152,13 +153,13 @@ test_ParseRequest_middleware(
             name      => 'mod',
             args      => [GET => '/ga/Foo::Bar'],
             rr        => {v=>1.1, action=>'call', fmt=>'json',
-                          uri=>'/My/Foo/Bar/'},
+                          uri=>'pm:/My/Foo/Bar/'},
         },
         {
             name      => 'mod + func',
             args      => [GET => '/ga/Foo::Bar/baz'],
             rr        => {v=>1.1, action=>'call', fmt=>'json',
-                          uri=>'/My/Foo/Bar/baz'},
+                          uri=>'pm:/My/Foo/Bar/baz'},
         },
     ],
 );
@@ -172,8 +173,8 @@ test_ParseRequest_middleware(
             args      => [GET => '/api/Foo/bar',
                           ['Content-Type'=>'text/yaml'],
                           '{a: 1, b: [2, 3]}'],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'json',
-                          args=>{a=>1, b=>[2,3]}},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'json', args=>{a=>1, b=>[2,3]}},
         },
     ],
 );
@@ -185,7 +186,8 @@ test_ParseRequest_middleware(
         {
             name      => 'request/args keys from form (turned off)',
             args      => [GET => '/api/Foo/bar?a=1'],
-            rr        => {v=>1.1, action=>'call', uri=>'/Foo/bar', fmt=>'json'},
+            rr        => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
+                          fmt=>'json'},
         },
     ],
 );
@@ -216,7 +218,7 @@ test_ParseRequest_middleware(
             name      => 'parse args from PATH_INFO (turned on)',
             args      => [GET => '/ga/Test::ParseRequest/add2/10%2E5/20%2E5'],
             rr        => {v=>1.1, action=>'call', fmt=>'json',
-                          uri=>'/Test/ParseRequest/add2',
+                          uri=>'pm:/Test/ParseRequest/add2',
                           args=>{a=>10.5, b=>20.5},
                       },
         },
@@ -266,6 +268,9 @@ sub test_ParseRequest_middleware {
                         or diag $res->as_string;
 
                     if (exists $test->{rr}) {
+                        if ($rr) {
+                            $rr->{uri} = "$rr->{uri}"; # to ease comparison
+                        }
                         is_deeply($rr, $test->{rr}, "rr") or diag explain $rr;
                     }
 
