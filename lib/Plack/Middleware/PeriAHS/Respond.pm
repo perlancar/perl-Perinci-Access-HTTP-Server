@@ -5,9 +5,7 @@ use strict;
 use warnings;
 
 use parent qw(Plack::Middleware);
-use Plack::Util::Accessor qw(
-                                time_limit
-                        );
+use Plack::Util::Accessor;
 
 use Data::Rmap;
 use Log::Any::Adapter;
@@ -19,7 +17,6 @@ use Time::HiRes qw(gettimeofday);
 
 sub prepare_app {
     my $self = shift;
-    $self->{allowed_output_formats} //= [qw/html json phps yaml/];
 }
 
 sub _pick_default_format {

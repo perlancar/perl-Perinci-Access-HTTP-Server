@@ -11,11 +11,11 @@ use Plack::Util::Accessor qw(
                                 parse_form
                                 parse_path_info
                                 accept_yaml
-                                allow_logs
                         );
 
 use JSON;
-use Perinci::Access::PeriAHS;
+use Perinci::Access;
+use Perinci::Access::Patch::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;
@@ -31,9 +31,8 @@ sub prepare_app {
     $self->{accept_yaml}     //= 0;
     $self->{parse_form}      //= 1;
     $self->{parse_path_info} //= 0;
-    $self->{allow_logs}      //= 0;
 
-    $self->{_pa} = Perinci::Access::PeriAHS->new;
+    $self->{_pa} = Perinci::Access->new;
 }
 
 sub call {
@@ -217,7 +216,7 @@ sub call {
     }
 
     # normalize into URI object
-    $rreq->{uri} = $self->{_pa}{pa}->_normalize_uri($rreq->{uri});
+    $rreq->{uri} = $self->{_pa}->_normalize_uri($rreq->{uri});
 
     # continue to app
     $self->app->($env);
