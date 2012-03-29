@@ -11,7 +11,7 @@ use Perinci::Access::InProcess;
 use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
-use Perinci::Sub::Gen::ForModule qw(gen_meta_for_module);
+use Perinci::Gen::ForModule qw(gen_meta_for_module);
 
 # VERSION
 
@@ -124,6 +124,7 @@ sub serve {
         $log->infof("Loading module %s ...", $m);
         eval { load $m };
         return [500, "Failed to load module $m: $@"] if $@;
+        gen_meta_for_module(module=>$m, load=>0);
     }
 
     my $pa = Perinci::Access->new(
@@ -134,54 +135,12 @@ sub serve {
 
     my $app =
         builder {
-            enable "Perinci::LogAccess",
+            enable "PeriAHS::LogAccess",
                 log_path => $riap_access_log_path;
 
-            enable "Perinci::ParseRequest",
-                uri_pattern => qr!^/api
-                                  (?:/(?<module>[^?/]+)
-                                      (?:/(?<sub>[^?/]+))?
-                                  )?!x,
-                allowed_modules => \@modules,
-                after_parse => sub {
-                    my ($self, $env) = @_;
-                    my $m = $env->{"peri.uri_pattern_matches"};
-                    my $mod = $m->{module};
-                    $mod =~ s!::!/!g;
-                    if ($mod) {
-                        my $uri = "pm:/$mod/" . ($m->{sub} // "");
-                        $env->{"riap.request"}{uri} = $uri;
-                    }
-                };
+            enable "PeriAHS::ParseRequest";
 
-            # automatically generate metadata for modules
-            enable sub {
-                my $app = shift;
-                sub {
-                    my $env     = shift;
-                    my $req     = $env->{"riap.request"};
-                    $log->tracef("Riap request: %s", $req);
-                    my $action  = $req->{action};
-                    my $uri     = $req->{uri};
-                    if ($uri && $uri->proto eq 'pm' &&
-                            $command =~ /^(call|spec)$/) {
-                        my $mod = $uri->module;
-                        no strict 'refs';
-                        my $spec = \%{"$mod\::SPEC"};
-                        my $spec_autogen = ${"$mod\::autogen"};
-                        if (!keys(%$spec) && !$spec_autogen) {
-                            $spec_autogen = 1;
-                            $log->tracef(
-                                "Generating spec for module %s ...", $mod);
-                            gen_spec_for_module(module=>$mod);
-                        }
-                    }
-                    my $res = $app->($env);
-                    return $res;
-                };
-            };
-
-            enable "SubSpec::HandleCommand";
+            enable "SubSpec::Respond";
         };
 
     my @argv;
@@ -210,8 +169,8 @@ sub serve {
     [200, "OK"];
 }
 
-Perinci::CmdLine::run('/periuk/serve');
-1;
+Perinci::CmdLine->new(url => '/peri_htserve/serve')->run;
+
 #ABSTRACT: Serve Perl modules over HTTP(S) using the Riap::HTTP protocol
 
 =head1 SYNOPSIS

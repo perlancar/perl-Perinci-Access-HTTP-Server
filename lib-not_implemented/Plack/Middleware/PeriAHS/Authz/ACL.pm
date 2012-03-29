@@ -1,4 +1,4 @@
-package Plack::Middleware::Periuk::Authz::ACL;
+package Plack::Middleware::PeriAHS::Authz::ACL;
 
 use 5.010;
 use strict;
@@ -7,7 +7,7 @@ use warnings;
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(acl acl_file autoreload_acl_file);
 
-use Plack::Util::Periuk qw(errpage);
+use Plack::Util::PeriAHS qw(errpage);
 
 # VERSION
 
@@ -33,7 +33,7 @@ __END__
  use Plack::Builder;
 
  builder {
-    enable "Periuk::Authz::ACL";
+    enable "PeriAHS::Authz::ACL";
  };
 
 

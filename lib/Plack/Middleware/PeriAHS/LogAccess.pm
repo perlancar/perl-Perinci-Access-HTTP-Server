@@ -1,4 +1,4 @@
-package Plack::Middleware::Periuk::LogAccess;
+package Plack::Middleware::PeriAHS::LogAccess;
 
 use 5.010;
 use strict;
@@ -35,7 +35,7 @@ sub prepare_app {
 sub call {
     my ($self, $env) = @_;
 
-    $env->{'ss.start_request_time'} = time();
+    $env->{'periahs.start_request_time'} = time();
 
     # call app first
     my $res = $self->app->($env);
@@ -54,10 +54,10 @@ sub log_access {
 
     my $now = [gettimeofday];
 
-    return unless $env->{'ss.start_command_time'};
+    return unless $env->{'periahs.start_action_time'};
 
     my $time = POSIX::strftime("%d/%b/%Y:%H:%M:%S +0000",
-                               gmtime($env->{'ss.start_request_time'}));
+                               gmtime($env->{'periahs.start_request_time'}));
     my $server_addr;
     if ($env->{'gepok.unix_socket'}) {
         $server_addr = "unix:$env->{SERVER_NAME}";
@@ -67,9 +67,11 @@ sub log_access {
 
     state $json = JSON->new->allow_nonref;
 
+    my $rreq = $env->{'riap.request'};
+
     my ($args_s, $args_len, $args_partial);
-    if ($env->{'ss.request'}{args}) {
-        $args_s = $json->encode($env->{'ss.request'}{args});
+    if ($rreq->{args}) {
+        $args_s = $json->encode($rreq->{args});
         $args_len = length($args_s);
         $args_partial = $args_len > $self->max_args_len;
         $args_s = substr($args_s, 0, $self->max_args_len)
@@ -80,9 +82,10 @@ sub log_access {
         $args_partial = 0;
     }
 
+    my $res = $env->{'riap.response'};
     my ($resp_s, $resp_len, $resp_partial);
-    if ($env->{'ss.response'}) {
-        $resp_s = $json->encode($env->{'ss.response'});
+    if ($res) {
+        $resp_s = $json->encode($resp);
         $resp_len = length($resp_s);
         $resp_partial = $resp_len > $self->max_resp_len;
         $resp_s = substr($resp_s, 0, $self->max_resp_len)
@@ -94,11 +97,12 @@ sub log_access {
     }
 
     my $subt;
-    if ($env->{'ss.start_command_time'}) {
-        if ($env->{'ss.finish_command_time'}) {
+    if ($env->{'periahs.start_action_time'}) {
+        if ($env->{'periahs.finish_action_time'}) {
             $subt = sprintf("%.3fms",
-                            1000*tv_interval($env->{'ss.start_command_time'},
-                                             $env->{'ss.finish_command_time'}));
+                            1000*tv_interval(
+                                $env->{'periahs.start_action_time'},
+                                $env->{'periahs.finish_action_time'}));
         } else {
             $subt = "D";
         }
@@ -123,7 +127,7 @@ sub log_access {
         "[%s] ", # remote addr
         "[%s] ", # server addr
         "[user %s] ",
-        "%s %s ", # command uri
+        "%s %s ", # action URI
         "[args %s %s] ",
         "[resp %s %s] ",
         "%s %s", # subt reqt
@@ -131,15 +135,15 @@ sub log_access {
         "\n"
     );
 
-    my $uri = $env->{'ss.request'}{uri};
+    my $uri = $rreq->{uri};
     my $log_line = sprintf(
         $fmt,
         $time,
         $env->{REMOTE_ADDR},
         $server_addr,
         $env->{HTTP_USER} // "-",
-        _safe($env->{'ss.request'}{command}),
-        _safe(ref($uri) ? $uri->{_uri} : ($uri // "-")),
+        _safe($rreq->{action}),
+        _safe("$uri" // "-"),
         $args_len.($args_partial ? "p" : ""), $args_s,
         $resp_len.($resp_partial ? "p" : ""), $resp_s,
         $subt, $reqt,
@@ -167,25 +171,25 @@ __END__
  use Plack::Builder;
 
  builder {
-     enable "Periuk::LogAccess", log_path => "/path/to/api-access.log";
+     enable "PeriAHS::LogAccess", log_path => "/path/to/api-access.log";
  }
 
 
 =head1 DESCRIPTION
 
 This middleware forwards the request to given app and logs request. Only
-requests which have executed commands (has $env->{'ss.start_command_time'} set)
-will be logged.
+requests which have executed action (has $env->{'periahs.start_action_time'}
+set) will be logged.
 
 The log looks like this (all in one line):
 
  [20/Aug/2011:22:05:38 +0000] [127.0.0.1] [tcp:80] [libby] call
- pm://MyModule/my_func [args 14 {"name":"val"}] [resp 12 [200,"OK",1]]
+ /MyModule/my_func [args 14 {"name":"val"}] [resp 12 [200,"OK",1]]
  2.123ms 5.947ms
 
-The second last time is time spent executing the command (in this case, calling
-the subroutine), and the last time is time spent for the whole request (from
-client connect until response is sent).
+The second last time is time spent executing the Riap action (in this case,
+calling the subroutine), and the last time is time spent for the whole HTTP
+request (from client connect until HTTP response is sent).
 
 
 =head1 CONFIGURATION

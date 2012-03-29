@@ -68,10 +68,9 @@ or perhaps (if you only have one module to expose):
 
  http://localhost:5000/func
 
-You can do this by customizing uri_pattern when enabling the
+You can do this by customizing B<match_uri> when enabling the
 PeriAHS::ParseRequest middleware (see B<peri-htserve> source code). You just
-need to make sure that you produce $env->{"riap.request"}{uri} (and other
-necessary Riap request keys).
+need to make sure that you set $env->{"riap.request"}{uri}.
 
 =head1 I want to let user specify output format from URI (e.g. /api/j/... or /api/yaml/...).
 
@@ -79,37 +78,43 @@ Again, this can be achieved by customizing the PeriAHS::ParseRequest middleware.
 You can do something like:
 
  enable "PeriAHS::ParseRequest"
-     uri_pattern => qr!^/api/(?<fmt>json|yaml|j|y)/
-                       (?<uri>[^?/]+(?:/[^?/]+)?)!x;
-     after_parse => sub {
-         my $env = shift;
-         my $m1 = $env->{"periahs.uri_pattern_matches"}{fmt};
-         $env->{"riap.request"}{fmt} = $fmt =~ /j/ ? 'json' : 'yaml';
-     };
+     match_uri => [
+         qr!^/api/(?<f>json|yaml|j|y)/
+                  (?<uri>[^?/]+(?:/[^?/]+)?)!x,
+         sub {
+             my ($env, $m) = @_;
+             $env->{"riap.request"}{fmt} = $m->{f} =~ /j/ ? 'json' : 'yaml';
+         }
+     ];
 
 =head1 I need even more custom URI syntax.
 
-You can leave C<uri_pattern> empty and perform your custom URI parsing in
-C<after_parse>. For example:
+You can leave C<match_uri> empty and perform your custom URI parsing in another
+middleware after PeriAHS::ParseRequest. For example:
 
- enable "PeriAHS::ParseRequest"
-     after_parse => sub {
-         my $env = shift;
-         # parse $env->{REQUEST_URI} on your own and put the result in
-         # $env->{"riap.request"}{uri}
+ enable "PeriAHS::ParseRequest";
+
+ # do more URI parsing
+ enable sub {
+     my $app = shift;
+     sub {
+         my $env     = shift;
+         my $rreq    = $env->{"riap.request"};
+         # parse more stuff and put it in $rreq
+         my $res = $app->($env);
+         return $res;
      };
-
-Or alternatively you can write your own request parser to replace
-PeriAHS::ParseRequest.
+ };
 
 =head2 I want to support HTTPS.
 
-Supply --https_ports, --ssl_key_file and --ssl_cert_file options in
-B<peri-htserve>.
+If you use C<peri-htserve>, supply --https_ports, --ssl_key_file and
+--ssl_cert_file options.
 
-If you do not use B<peri-htserve> or use PSGI server other than Gepok, you will
-probably need to run Nginx, L<Perlbal>, or some other external HTTPS proxy.
-Hopefully
+If you use B<plackup>, use L<Gepok> (-s) as the PSGI server.
+
+If you use PSGI server other than Gepok, you will probably need to run Nginx,
+L<Perlbal>, or some other external HTTPS proxy.
 
 =head2 I don't want to expose my subroutines and module structure directly!
 
@@ -126,8 +131,8 @@ Take a look at L<Serabi>.
 
 =head2 I want to support another output format (e.g. XML, MessagePack, etc).
 
-Just preload the appropriate format modules (like, say,
-L<Data::Format::Pretty::Perl>) in your application. The format will
+Just preload the appropriate Data::Format::Pretty::* formatter modules (like,
+say, L<Data::Format::Pretty::Perl>) in your application. The format will
 automatically be supported.
 
 =head2 I want to automatically reload modules that changed on disk.
@@ -142,9 +147,9 @@ before PeriAHS::ParseRequest.
 
 =head2 I want to add access control and/or authorize clients.
 
-Take a look at L<Plack::Middleware::PeriAHS::ACL> which allows access control
-based on various conditions. Normally this is put after authentication and
-before response creation.
+Take a look at L<Plack::Middleware::PeriAHS::ACL> (currently unfinished) which
+allows access control based on various conditions. Normally this is put after
+authentication and before response creation.
 
 =head2 I want to support new actions.
 

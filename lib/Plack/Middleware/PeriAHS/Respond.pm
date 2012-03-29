@@ -1,4 +1,4 @@
-package Plack::Middleware::Periuk::Request;
+package Plack::Middleware::PeriAHS::Respond;
 
 use 5.010;
 use strict;
@@ -11,9 +11,8 @@ use Plack::Util::Accessor qw(
 
 use Data::Rmap;
 use Log::Any::Adapter;
-use Plack::Util::Periuk qw(errpage allowed);
+use Plack::Util::PeriAHS qw(errpage allowed);
 use Scalar::Util qw(blessed);
-use Sub::Spec::Util qw(str_log_level);
 use Time::HiRes qw(gettimeofday);
 
 # VERSION
@@ -71,15 +70,9 @@ sub call {
     die "This middleware needs psgi.streaming support"
         unless $env->{'psgi.streaming'};
 
-    my $ssreq = $env->{"ss.request"};
-    my $cmd = $ssreq->{command};
-    return errpage("Command not specified") unless $cmd;
-    return errpage("Invalid command syntax") unless $cmd =~ /\A\w+\z/;
+    my $rreq = $env->{"riap.request"};
 
-    eval { require "Sub/Spec/HTTP/Server/Command/$cmd.pm" };
-    return errpage("Can't get command handler for command `$cmd`: $@") if $@;
-
-    my $ofmt = $ssreq->{output_format} // $self->default_output_format
+    my $ofmt = $rreq->{output_format} // $self->default_output_format
         // $self->_pick_default_format($env);
     return errpage("Unknown output format: $ofmt")
         unless $ofmt =~ /^\w+/ && $self->can("format_$ofmt");
@@ -89,33 +82,10 @@ sub call {
     return sub {
         my $respond = shift;
 
-        my $exec_cmd = sub {
-            my $time_limit = $self->time_limit // 0;
-            if (ref($time_limit) eq 'CODE') {
-                $time_limit = $time_limit->($self, $env) // 0;
-            }
-            $time_limit += 0;
-
-            my $cmd_res;
-            eval {
-                local $SIG{ALRM} = sub { die "Timed out\n" };
-                alarm $time_limit;
-                $env->{'ss.start_command_time'} = [gettimeofday];
-                my $code = \&{"Sub::Spec::HTTP::Server::Command::handle_".$cmd};
-                $cmd_res = $code->($env);
-                $env->{'ss.finish_command_time'} = [gettimeofday];
-            };
-            alarm 0;
-            $cmd_res // [500,
-                         $@ ? ($@ =~ /Timed out/ ?
-                                   "Execution timed out" :
-                                       "Exception: $@") : "BUG"];
-        };
-
         my $writer;
-        my $loglvl  = str_log_level($ssreq->{'loglevel'});
-        my $marklog = $ssreq->{'marklog'};
-        my $cmd_res;
+        my $loglvl  = $rreq->{'loglevel'};
+        my $marklog = $rreq->{'marklog'};
+        my $res;
         if ($loglvl) {
             $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
             Log::Any::Adapter->set(
@@ -133,19 +103,14 @@ sub call {
                     $writer->write($msg);
                 },
             );
-            $cmd_res = $exec_cmd->();
+            $res = ;
         } else {
-            $cmd_res = $exec_cmd->();
+            $res = $exec_cmd->();
         }
-
-        errpage("Invalid response from command handler")
-            unless ref($cmd_res) eq 'ARRAY' && @$cmd_res >= 2 &&
-                $cmd_res->[0] == int($cmd_res->[0]) &&
-                    $cmd_res->[0] >= 100 && $cmd_res->[0] <= 599;
 
         $self->postprocess_result($cmd_res);
 
-        $env->{'ss.response'} = $cmd_res;
+        $env->{'riap.response'} = $res;
 
         my $fmt_method = "format_$ofmt";
         my ($res, $ct) = $self->$fmt_method($cmd_res, $env);

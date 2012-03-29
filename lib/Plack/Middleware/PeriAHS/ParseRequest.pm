@@ -1,9 +1,3 @@
-# make sure that, this is not the ideal place to do it, but this is the least
-# worst, IMO.
-package Data::Format::Pretty::json;
-require Data::Format::Pretty::CompactJSON;
-*format_pretty = \&Data::Format::Pretty::CompactJSON::format_pretty;
-
 package Plack::Middleware::PeriAHS::ParseRequest;
 
 use 5.010;
@@ -13,10 +7,10 @@ use warnings;
 use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util::Accessor qw(
-                                accept_yaml
-                                uri_pattern
+                                match_uri
                                 parse_form
                                 parse_path_info
+                                accept_yaml
                                 allow_logs
                         );
 
@@ -33,11 +27,11 @@ my $json = JSON->new->allow_nonref;
 sub prepare_app {
     my $self = shift;
 
+    $self->{match_uri}       //= qr/(?<uri>[^?]*)/;
     $self->{accept_yaml}     //= 0;
-    $self->{uri_pattern}     //= qr/(?<uri>[^?]*)/;
     $self->{parse_form}      //= 1;
     $self->{parse_path_info} //= 0;
-    $self->{allow_logs}      //= 1;
+    $self->{allow_logs}      //= 0;
 
     $self->{_pa} = Perinci::Access::PeriAHS->new;
 }
@@ -45,7 +39,7 @@ sub prepare_app {
 sub call {
     my ($self, $env) = @_;
 
-    my $rr = $env->{"riap.request"} //= {};
+    my $rreq = $env->{"riap.request"} //= {};
 
     # first determine the default output format (fmt), so we can return error
     # page in that format
@@ -74,12 +68,12 @@ sub call {
             return errpage($env, [400, "Invalid JSON in HTTP header $k0"])
                 if $@;
         }
-        $rr->{$k} = $v;
+        $rreq->{$k} = $v;
     }
 
     # parse args from request body (required by spec)
-    my $req = Plack::Request->new($env);
-    unless (exists $rr->{args}) {
+    my $preq = Plack::Request->new($env);
+    unless (exists $rreq->{args}) {
         {
             my $ct = $env->{CONTENT_TYPE};
             last unless $ct;
@@ -90,7 +84,7 @@ sub call {
                     $ct eq 'text/yaml' && $self->{accept_yaml};
             if ($ct eq 'application/json') {
                 #$log->trace('Request body is JSON');
-                eval { $rr->{args} = $json->decode($req->content) };
+                eval { $rreq->{args} = $json->decode($preq->content) };
                 return errpage(
                     $env, [400, "Invalid JSON in request body"]) if $@;
             #} elsif ($ct eq 'application/vnd.php.serialized') {
@@ -102,7 +96,7 @@ sub call {
             #        if $@;
             } elsif ($ct eq 'text/yaml') {
                 require YAML::Syck;
-                eval { $rr->{args} = YAML::Syck::Load($req->content) };
+                eval { $rreq->{args} = YAML::Syck::Load($preq->content) };
                 return errpage(
                     $env, [400, "Invalid YAML in request body"]) if $@;
             }
@@ -110,32 +104,32 @@ sub call {
     }
     return errpage(
         $env, [400, "Riap request key 'args' must be hash"])
-        unless !defined($rr->{args}) || ref($rr->{args}) eq 'HASH'; # sanity
+        unless !defined($rreq->{args}) || ref($rreq->{args}) eq 'HASH'; # sanity
 
-    # get uri from 'uri_pattern' config
-    my $pat = $self->{uri_pattern};
+    # get uri from 'match_uri' config
+    my $mu  = $self->{match_uri};
     my $uri = $env->{REQUEST_URI};
     my %m;
-    if (ref($pat) eq 'ARRAY') {
-        $uri =~ $pat->[0] or return errpage(
-            $env, [404, "Request does not match uri_pattern $pat->[0]"]);
+    if (ref($mu) eq 'ARRAY') {
+        $uri =~ $mu->[0] or return errpage(
+            $env, [404, "Request does not match match_uri[0] $mu->[0]"]);
         %m = %+;
-        $pat->[1]->(\%m, $env);
+        $mu->[1]->($env, \%m);
     } else {
-        $uri =~ $pat or return errpage(
-            $env, [404, "Request does not match uri_pattern $pat"]);
+        $uri =~ $mu or return errpage(
+            $env, [404, "Request does not match match_uri $mu"]);
         %m = %+;
-    }
-    for (keys %m) {
-        $rr->{$_} //= $m{$_};
+        for (keys %m) {
+            $rreq->{$_} //= $m{$_};
+        }
     }
 
     # get ss request key from form variables (optional)
     if ($self->{parse_form}) {
-        my $form = $req->parameters;
+        my $form = $preq->parameters;
 
         # special name 'callback' is for jsonp
-        if (($rr->{fmt} // $env->{_default_fmt}) eq 'json' &&
+        if (($rreq->{fmt} // $env->{_default_fmt}) eq 'json' &&
                 defined($form->{callback})) {
             return errpage(
                 $env, [400, "Invalid callback syntax, please use ".
@@ -178,17 +172,17 @@ sub call {
                 return errpage(
                     $env, [400, "Invalid Riap request key `$rk` (from form)"])
                     unless $rk =~ /\A\w+\z/;
-                $rr->{$rk} //= $v;
+                $rreq->{$rk} //= $v;
             } else {
-                $rr->{args}{$k} //= $v;
+                $rreq->{args}{$k} //= $v;
             }
         }
     }
 
     if ($self->{parse_path_info}) {
         {
-            last unless $rr->{uri};
-            my $res = $self->{_pa}->request(meta => $rr->{uri});
+            last unless $rreq->{uri};
+            my $res = $self->{_pa}->request(meta => $rreq->{uri});
             last unless $res->[0] == 200;
             my $meta = $res->[2];
             last unless $meta;
@@ -199,35 +193,43 @@ sub call {
             my @pi = map {uri_unescape($_)} split m!/+!, $pi;
             $res = get_args_from_array(array=>\@pi, meta=>$meta);
             return errpage(
-                $env, [500, "Bad metadata for function $rr->{uri}: ".
+                $env, [500, "Bad metadata for function $rreq->{uri}: ".
                            "Can't get arguments: $res->[0] - $res->[1]"])
                 unless $res->[0] == 200;
                 for my $k (keys %{$res->[2]}) {
-                    $rr->{args}{$k} //= $res->[2]{$k};
+                    $rreq->{args}{$k} //= $res->[2]{$k};
                 }
         }
     }
 
     # defaults
-    $rr->{v}      //= 1.1;
-    $rr->{action} //= 'call';
-    $rr->{fmt}    //= $env->{_default_fmt};
+    $rreq->{v}      //= 1.1;
+    $rreq->{action} //= 'call';
+    $rreq->{fmt}    //= $env->{_default_fmt};
 
     # also put Riap client for later phases
     $env->{_pa} = $self->{_pa};
 
     # sanity: check required keys
     for (qw/uri v action/) {
-        defined($rr->{$_}) or return errpage(
+        defined($rreq->{$_}) or return errpage(
             $env, [500, "Required Riap request key '$_' has not been defined"]);
     }
 
     # normalize into URI object
-    $rr->{uri} = $self->{_pa}{pa}->_normalize_uri($rr->{uri});
+    $rreq->{uri} = $self->{_pa}{pa}->_normalize_uri($rreq->{uri});
 
     # continue to app
     $self->app->($env);
 }
+
+# since we directly load Data::Format::Pretty::FORMAT, make sure that module for
+# the 'json' format exists. admittedly, this is not the ideal place to do it,
+# but this is the least worst, IMO.
+package Data::Format::Pretty::json;
+no warnings;
+require Data::Format::Pretty::CompactJSON;
+*format_pretty = \&Data::Format::Pretty::CompactJSON::format_pretty;
 
 1;
 # ABSTRACT: Parse Riap request from HTTP request
@@ -262,80 +264,77 @@ and also C<text/yaml> (if C<accept_yaml> configuration is enabled).
 
 Additionally, the following are also done:
 
-B<From URI>. Request URI is checked against B<uri_pattern> configuration. If URI
+B<From URI>. Request URI is checked against B<match_uri> configuration. If URI
 doesn't match this regex, a 404 error response is returned. It is a convenient
 way to check for valid URLs as well as set Riap request keys, like:
 
  qr!^/api/(?<fmt>json|yaml)/!;
 
-The default C<uri_pattern> is qr/.?/, which matches anything, but won't
-parse/capture any information.
+The default C<match_uri> is qr/(?<uri>[^?]*)/.
 
 B<From form variables>. If C<parse_form> is enabled, C<args> request key will be
 set (or added) from GET/POST request variables, for example:
 http://host/api/foo/bar?a=1&b:j=[2] will set arguments C<a> and C<b> (":j"
 suffix means value is JSON-encoded; ":y" and ":p" are also accepted if the
-C<accept_yaml> and C<accept_phps> configurations are enabled). In addition,
-request variables C<-ss-req-*> are also accepted for setting other SS request
-keys. Unknown SS request key or encoding suffix will result in 400 error.
+C<accept_yaml> configurations are enabled). In addition, request variables
+C<-riap-*> are also accepted for setting other Riap request keys. Unknown Riap
+request key or encoding suffix will result in 400 error.
 
 If request format is JSON and form variable C<callback> is defined, then it is
 assumed to specify callback for JSONP instead part of C<args>. "callback(json)"
 will be returned instead of just "json".
 
-C<From URI (2)>. If C<parse_args_from_path_info> configuration is enabled, and
-C<uri> SS request key contains module and subroutine name (so spec can be
-retrieved), C<args> will be set (or added) from URI path info. Note that portion
-matching C<uri_pattern> will be removed first. For example, when C<uri_pattern>
-is qr!^/api/v1(?:/(?<module>[\w:]+)(?:/(?<sub>\w+)))?!:
+C<From URI (2, path info)>. If C<parse_path_info> configuration is enabled, and
+C<uri> Riap request key has been set (so metadata can be retrieved), C<args>
+will be set (or added) from URI path info. See "parse_path_info" in the
+configuration documentation.
 
  http://host/api/v1/Module::Sub/func/a1/a2/a3
 
-will result in ['a1', 'a2', 'a3'] being fed into L<Sub::Spec::GetArgs::Array>.
-An unsuccessful parsing will result in HTTP 400 error.
+will result in ['a1', 'a2', 'a3'] being fed into
+L<Perinci::Sub::GetArgs::Array>. An unsuccessful parsing will result in HTTP 400
+error.
 
 
 =head1 CONFIGURATIONS
 
 =over 4
 
+=item * match_uri => REGEX or [REGEX, CODE] (default qr/.?/)
+
+This provides an easy way to extract Riap request keys (typically C<uri>) from
+HTTP request's URI. Put named captures inside the regex and it will set the
+corresponding Riap request keys, e.g.:
+
+ qr!^/api(?<uri>/[^?]*)!
+
+If you need to do some processing, you can also specify a 2-element array
+containing regex and code. When supplied this, the middleware will NOT
+automatically set Riap request keys with the named captures; instead, your code
+should do it. Code will be supplied ($env, \%match) and should set
+$env->{'riap.request'} as needed. An example:
+
+ match_uri => [
+     qr!^/api
+        (?: /(?<module>[\w.]+)?
+          (?: /(?<func>[\w+]+) )?
+        )?!x,
+     sub {
+         my ($env, $match) = @_;
+         if (defined $match->{module}) {
+             $match->{module} =~ s!\.!/!g;
+             $env->{'riap.request'}{uri} = "/$match->{module}/" .
+                 ($match->{func} // "");
+         }
+     }];
+
+Given URI C</api/Foo.Bar/baz>, C<uri> Riap request key will be set to
+C</Foo/Bar/baz>.
+
 =item * accept_yaml => BOOL (default 0)
 
 Whether to accept YAML-encoded data in HTTP request body and form for C<args>
 Riap request key. If you only want to deal with JSON, keep this off.
-
-=item * uri_pattern => REGEX or [REGEX, CODE] (default qr/(?<uri>[^?]*)/)
-
-This provides an easy way to extract Riap request keys (usually C<uri>) from
-HTTP request's URI. Put named captures inside the regex and it will set the
-corresponding Riap request keys, e.g.:
-
- uri_pattern => qr!^/api(?<uri>/[^?]*)!
-
-If regexp doesn't match, a 404 error response will be generated.
-
-The second array form is used to customize the matching. After the match, code
-will be called with reference to the named captures, in which you can delete/set
-new names. Example:
-
- uri_pattern => [
-     qr!^/ga/(?<mod>[^?/]+)(?:
-            /?(?:
-                (?<func>[^?/]+)?
-            )
-        )!x,
-     sub {
-         my $m=shift;
-         $m->{mod} =~ s!::!/!g;
-         $m->{func} //= "";
-         $m->{uri} = "/$m->{mod}/$m->{func}";
-         delete $m->{mod};
-         delete $m->{func};
-     },
- ]
-
-This means a URI C</ga/Foo::Bar/baz> will set C<$env->{'riap.request'}{uri}> to
-C</Foo/Bar/baz> and won't set C<mod> and C<func>.
 
 =item * parse_form => BOOL (default 1)
 
@@ -346,12 +345,13 @@ from C<X-Riap-*> HTTP request header), it will be skipped.
 
 =item * parse_path_info => BOOL (default 0)
 
-Whether to parse arguments from $env->{PATH_INFO}. Note that will require a Riap
-C<meta> request to the backend, to get the specification for function arguments.
-You'll also most of the time need to prepare the PATH_INFO first. Example:
+Whether to parse arguments from $env->{PATH_INFO}. Note that this will require a
+Riap C<meta> request to the backend, to get the specification for function
+arguments. You'll also most of the time need to prepare the PATH_INFO first.
+Example:
 
  parse_path_info => 1,
- uri_pattern => [
+ match_uri => [
      qr!^/ga/(?<mod>[^?/]+)(?:
             /?(?:
                 (?<func>[^?/]+)?:
@@ -359,16 +359,14 @@ You'll also most of the time need to prepare the PATH_INFO first. Example:
             )
         )!x,
      sub {
-         my ($m, $env) = @_;
+         my ($env, $m) = @_;
          $m->{mod} =~ s!::!/!g;
          $m->{func} //= "";
-         $m->{uri} = "/$m->{mod}/$m->{func}";
+         $env->{'riap.request'}{uri} = "/$m->{mod}/$m->{func}";
          $env->{PATH_INFO} = $m->{pi};
-         delete $m->{mod};
-         delete $m->{func};
-         delete $m->{pi};
      },
  ]
+
 =back
 
 

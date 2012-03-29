@@ -5,7 +5,6 @@ use strict;
 use warnings;
 
 use parent qw(Plack::Middleware);
-use Plack::Request;
 use Plack::Util::Accessor qw(
                                 allow_log
                                 allow_uri_scheme
@@ -31,12 +30,12 @@ sub prepare_app {
 sub call {
     my ($self, $env) = @_;
 
-    my $rr = $env->{"riap.request"};
-    my $uri = $rr->{uri};
+    my $rreq = $env->{"riap.request"};
+    my $uri  = $rreq->{uri};
 
     if (!$self->{allow_log}) {
         return errpage($env, [403, "Setting loglevel is forbidden"])
-            if $rr->{loglevel};
+            if $rreq->{loglevel};
     }
 
     if ($self->{allow_uri_scheme}) {
@@ -61,11 +60,12 @@ sub call {
 
     if ($self->{allow_action}) {
         return errpage($env, [403, "Riap action not allowed (not in list)"])
-            unless match_array_or_regex($rr->{action}, $self->{allow_action});
+            unless match_array_or_regex($rreq->{action}, $self->{allow_action});
     }
     if ($self->{deny_action}) {
-        return errpage($env, [403, "Riap action '$rr->{action}' not allowed (deny list)"])
-            if match_array_or_regex($rr->{action}, $self->{deny_action});
+        return errpage($env, [403, "Riap action '$rreq->{action}' not allowed ".
+                                  "(deny list)"])
+            if match_array_or_regex($rreq->{action}, $self->{deny_action});
     }
 
     # continue to app
