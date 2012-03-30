@@ -46,6 +46,7 @@ sub errpage {
     }
 
     $log->tracef("Returning error page: %s", $pres);
+    $pres;
 }
 
 1;
