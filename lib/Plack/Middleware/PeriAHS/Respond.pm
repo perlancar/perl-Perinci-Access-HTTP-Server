@@ -10,7 +10,7 @@ use Plack::Util::Accessor qw();
 use Data::Rmap;
 use Log::Any::Adapter;
 use Perinci::Result::Format;
-use Plack::Util::PeriAHS qw(errpage allowed);
+use Plack::Util::PeriAHS qw(errpage);
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
@@ -39,8 +39,8 @@ sub format_result {
     my $fres = Perinci::Result::Format::format($fmt, $rres);
 
     if ($fmt =~ /^json/ && defined($env->{"periahs.jsonp_callback"})) {
-        $fres = $env->{"periahs.jsonp_callback"}."($json)";
-    );
+        $fres = $env->{"periahs.jsonp_callback"}."($fres)";
+    }
 
     ($fres, $ct);
 }
@@ -87,10 +87,10 @@ sub call {
         my ($fres, $ct) = $self->format_result($rres, $env);
 
         if ($writer) {
-            $writer->write($marklog ? "R$res" : $res);
+            $writer->write($marklog ? "R$fres" : $fres);
             $writer->close;
         } else {
-            $respond->([200, ["Content-Type" => $ct], [$res]]);
+            $respond->([200, ["Content-Type" => $ct], [$fres]]);
         }
     };
 }

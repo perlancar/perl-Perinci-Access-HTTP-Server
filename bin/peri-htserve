@@ -5,7 +5,7 @@ package peri_htserve; # just to make PodWeaver happy
 use 5.010;
 use strict;
 use warnings;
-use Log::Any::App qw($log);
+use Log::Any qw($log);
 use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
