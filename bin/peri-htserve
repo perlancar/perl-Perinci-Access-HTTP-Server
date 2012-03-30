@@ -108,7 +108,7 @@ sub serve {
     $log->infof("Starting server (using %s) ...", $server);
 
     my $riap_access_log_path = $args{riap_access_log_path} //
-        "$ENV{HOME}/peri-htserve-ss_access.log";
+        "$ENV{HOME}/peri-htserve-riap_access.log";
 
     my @modules;
     for my $m (@{$args{modules}}) {
@@ -130,7 +130,9 @@ sub serve {
     my $app =
         builder {
             enable "PeriAHS::LogAccess",
-                log_path => $riap_access_log_path;
+                dest => $riap_access_log_path;
+
+            #enable "PeriAHS::CheckAccess";
 
             enable "PeriAHS::ParseRequest";
 

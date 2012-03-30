@@ -7,7 +7,7 @@ use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
-                                log_path
+                                dest
                                 max_args_len
                                 max_resp_len
                         );
@@ -15,22 +15,25 @@ use Plack::Util::Accessor qw(
 use JSON;
 use Plack::Util;
 use POSIX;
+use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday tv_interval);
 
 # VERSION
 
 sub prepare_app {
     my $self = shift;
-    if (!$self->log_path) {
-        die "Please specify log_path";
+    if (!$self->dest) {
+        die "Please specify dest";
     }
 
     $self->{max_args_len} //= 1000;
     $self->{max_resp_len} //= 1000;
 
-    open my($fh), ">>", $self->log_path
-        or die "Can't open log file `$self->{log_path}`: $!";
-    $self->{_log_fh} = $fh;
+    if (!ref($self->dest)) {
+        open my($fh), ">>", $self->dest
+            or die "Can't open log file '$self->{dest}': $!";
+        $self->dest($fh);
+    }
 }
 
 sub call {
@@ -48,8 +51,6 @@ sub call {
             my $res = shift;
             $self->log_access($env);
         });
-
-    $res;
 }
 
 sub log_access {
@@ -57,7 +58,7 @@ sub log_access {
 
     my $now = [gettimeofday];
 
-    return unless $env->{'periahs.start_action_time'};
+    return unless $env->{'periahs.start_request_time'};
 
     my $time = POSIX::strftime("%d/%b/%Y:%H:%M:%S +0000",
                                gmtime($env->{'periahs.start_request_time'}));
@@ -152,9 +153,20 @@ sub log_access {
         $subt, $reqt,
         $extra,
     );
+    #$log->tracef("Riap access log: %s", $log_line);
 
-    #warn $log_line;
-    syswrite $self->{_log_fh}, $log_line;
+    my $dest = $self->dest;
+    if (blessed($dest)) {
+        if ($dest->can("syswrite")) {
+            $dest->syswrite($log_line);
+        } elsif ($dest->can("log")) {
+            $dest->log(log=>'info', message=>$log_line);
+        } else {
+            die "BUG: dest cannot be syswrite()'d or log()'ed";
+        }
+    } else {
+        syswrite $self->{dest}, $log_line;
+    }
 }
 
 sub _safe {
@@ -174,7 +186,7 @@ __END__
  use Plack::Builder;
 
  builder {
-     enable "PeriAHS::LogAccess", log_path => "/path/to/api-access.log";
+     enable "PeriAHS::LogAccess", dest => "/path/to/api-access.log";
  }
 
 
@@ -202,9 +214,12 @@ starting time more accurately.
 
 =over 4
 
-=item * log_path
+=item * dest => STR or OBJ
 
-Path to log file. Log file will be opened in append-mode.
+Either a string (path to log file) or an object which support <syswrite()> (like
+L<IO::Handle>) or C<log> (like L<Log::Dispatch::Output>). If object supports
+C<log>, it will be called like a Log::Dispatch::Output, i.e.
+$obj->log(level=>'info', message=>"Log line ...\n").
 
 =item * max_args_len => INT (default 1000)
 
