@@ -8,10 +8,8 @@ use Log::Any '$log';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw();
 
-use Data::Rmap;
 use Log::Any::Adapter;
 use Perinci::Result::Format;
-use Plack::Util::PeriAHS qw(errpage);
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
@@ -66,6 +64,7 @@ sub call {
         my $loglvl  = $rreq->{'loglevel'};
         my $marklog = $rreq->{'marklog'};
         my $rres; #  short for riap response
+        $env->{'periahs.start_action_time'} = [gettimeofday];
         if ($loglvl) {
             $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
             Log::Any::Adapter->set(
@@ -87,6 +86,7 @@ sub call {
         } else {
             $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
         }
+        $env->{'periahs.finish_action_time'} = [gettimeofday];
 
         $env->{'riap.response'} = $rres;
         my ($fres, $ct) = $self->format_result($rres, $env);
