@@ -4,6 +4,8 @@ use 5.010;
 use strict;
 use warnings;
 
+# VERSION
+
 use Perinci::Access::Base;
 package Perinci::Access::Base;
 
