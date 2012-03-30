@@ -1,11 +1,18 @@
 Revision history for Perinci-Access-HTTP-Server
 
-0.13     2012-03-29 (not yet released)
+0.13     2012-03-30
 
          Rename distribution from Sub-Spec-HTTP-Server to
          Perinci-Access-HTTP-Server. Follow Riap 1.1 specification.
-         Rename/refactor lots of middleware. Rename script from 'servepm' to
-         'peri-htserve'.
+
+         - Rename/refactor some middlewares.
+
+         - Rename script from 'servepm' to 'peri-htserve'.
+
+         - Formatting now uses Perinci::Result::Format.
+
+         - Can log Riap access log to file or a
+           IO::Handle-/Log::Dispatch::Output-like object.
 
 
 0.12     2012-01-20
