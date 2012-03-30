@@ -62,7 +62,7 @@ sub call {
         my $respond = shift;
 
         my $writer;
-        my $loglvl  = $rreq->{'loglevel'};
+        my $loglvl  = $rreq->{'loglevel'} // 0;
         my $marklog = $rreq->{'marklog'};
         my $rres; #  short for riap response
         $env->{'periahs.start_action_time'} = [gettimeofday];
