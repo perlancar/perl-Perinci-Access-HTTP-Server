@@ -32,16 +32,11 @@ test_ParseRequest_middleware(
             rrreq     => {v=>1.1, action=>'call', uri=>'pm:/', fmt=>'json'},
         },
         {
-            name      => 'default fmt = html, errpage in html',
-            args      => [GET => '/x', ['Accept'=>'text/html']],
-            rreq      => undef,
-            ct        => 'text/html',
-            content   => qr/match match_uri/,
-        },
-        {
             name      => 'default fmt = text, errpage in text',
-            args      => [GET => '/x', ['Accept'=>'text/*']],
+            args      => [GET => '/x', ['Accept'=>'text/html',
+                                        'User-Agent'=>'curl/0.0']],
             rreq      => undef,
+            ct        => 'text/plain',
             content   => qr/match match_uri/,
         },
 

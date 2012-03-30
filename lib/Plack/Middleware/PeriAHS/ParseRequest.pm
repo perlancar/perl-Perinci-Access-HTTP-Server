@@ -70,8 +70,11 @@ sub call {
     my $acp = $env->{HTTP_ACCEPT} // "";
     my $ua  = $env->{HTTP_USER_AGENT} // "";
     my $fmt;
-    if ($acp =~ m!text/! || $ua =~ m!Wget/|curl/!) {
+    if ($ua =~ m!Wget/|curl/!) {
         $fmt = "text";
+    } elsif ($ua =~ m!Mozilla/!) {
+        $fmt = "json";
+        # XXX enable json->html templating
     } else {
         $fmt = "json";
     }

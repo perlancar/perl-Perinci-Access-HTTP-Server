@@ -3,6 +3,7 @@ package Plack::Middleware::PeriAHS::CheckAccess;
 use 5.010;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
