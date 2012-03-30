@@ -6,6 +6,9 @@ use 5.010;
 use strict;
 use warnings;
 use Log::Any qw($log);
+
+use Module::List qw(list_modules);
+use Module::Load;
 use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
@@ -57,7 +60,7 @@ _
 Default is ~/peri-htserve-riap_access.log
 _
         }],
-        server => ['array*' => {
+        server => ['str*' => {
             summary => 'Choose PSGI server',
             description => <<'_',
 
