@@ -85,7 +85,7 @@ sub log_access {
     my $res = $env->{'riap.response'};
     my ($resp_s, $resp_len, $resp_partial);
     if ($res) {
-        $resp_s = $json->encode($resp);
+        $resp_s = $json->encode($res);
         $resp_len = length($resp_s);
         $resp_partial = $resp_len > $self->max_resp_len;
         $resp_s = substr($resp_s, 0, $self->max_resp_len)
@@ -187,9 +187,12 @@ The log looks like this (all in one line):
  /MyModule/my_func [args 14 {"name":"val"}] [resp 12 [200,"OK",1]]
  2.123ms 5.947ms
 
-The second last time is time spent executing the Riap action (in this case,
-calling the subroutine), and the last time is time spent for the whole HTTP
-request (from client connect until HTTP response is sent).
+The second last field ("2.123ms") is time spent executing the Riap action (in
+this case, calling the subroutine), and the last field ("5.947ms") is time spent
+for the whole HTTP request (from client connect until HTTP response is sent).
+
+This middleware should be put outermost (first) to be able to record request
+starting time more accurately.
 
 
 =head1 CONFIGURATION

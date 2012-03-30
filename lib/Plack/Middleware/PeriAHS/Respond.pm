@@ -5,10 +5,11 @@ use strict;
 use warnings;
 
 use parent qw(Plack::Middleware);
-use Plack::Util::Accessor;
+use Plack::Util::Accessor qw();
 
 use Data::Rmap;
 use Log::Any::Adapter;
+use Perinci::Result::Format;
 use Plack::Util::PeriAHS qw(errpage allowed);
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
@@ -19,46 +20,29 @@ sub prepare_app {
     my $self = shift;
 }
 
-sub _pick_default_format {
-    my ($self, $env) = @_;
-    # if client is a GUI browser, choose html. otherwise, json.
-    my $ua = $env->{HTTP_USER_AGENT} // "";
-    return "html" if $ua =~ m!Mozilla/|Opera/!;
-    # mozilla already includes ff, chrome, safari, msie
-    "json";
-}
+sub format_result {
+    my ($self, $rres, $env) = @_;
 
-sub format_json {
-    my ($self, $sub_res, $env) = @_;
-    require Data::Format::Pretty::JSON;
-    my $json = Data::Format::Pretty::JSON::format_pretty($sub_res, {pretty=>0});
-    return (
-        defined($env->{_jsonp_callback}) ?
-            "$env->{_jsonp_callback}($json)" :
-                $json,
-        "application/json"
+    my $rreq = $env->{"riap.request"};
+    my $fmt = $rreq->{fmt} // $env->{'periahs.default_fmt'} // 'json';
+
+    my $formatter;
+    for ($fmt, "json") { # fallback to json if unknown format
+        $formatter = $Perinci::Result::Format::Formats{$_};
+        if ($formatter) {
+            $fmt = $_;
+            last;
+        }
+    }
+    my $ct = $formatter->[1];
+
+    my $fres = Perinci::Result::Format::format($fmt, $rres);
+
+    if ($fmt =~ /^json/ && defined($env->{"periahs.jsonp_callback"})) {
+        $fres = $env->{"periahs.jsonp_callback"}."($json)";
     );
-}
 
-sub format_yaml {
-    my ($self, $sub_res, $env) = @_;
-    require Data::Format::Pretty::YAML;
-    return (Data::Format::Pretty::YAML::format_pretty($sub_res),
-            "text/yaml");
-}
-
-sub format_phps {
-    my ($self, $sub_res, $env) = @_;
-    require Data::Format::Pretty::PHPSerialization;
-    return (Data::Format::Pretty::PHP::format_pretty($sub_res),
-            "application/vnd.php.serialized");
-}
-
-sub format_html {
-    my ($self, $sub_res, $env) = @_;
-    require Data::Format::Pretty::HTML;
-    return (Data::Format::Pretty::HTML::format_pretty($sub_res),
-            "text/html");
+    ($fres, $ct);
 }
 
 sub call {
@@ -68,13 +52,7 @@ sub call {
         unless $env->{'psgi.streaming'};
 
     my $rreq = $env->{"riap.request"};
-
-    my $ofmt = $rreq->{output_format} // $self->default_output_format
-        // $self->_pick_default_format($env);
-    return errpage("Unknown output format: $ofmt")
-        unless $ofmt =~ /^\w+/ && $self->can("format_$ofmt");
-    return errpage("Output format $ofmt not allowed")
-        unless allowed($ofmt, $self->allowed_output_formats);
+    my $pa   = $env->{"periahs.riap_client"};
 
     return sub {
         my $respond = shift;
@@ -82,7 +60,7 @@ sub call {
         my $writer;
         my $loglvl  = $rreq->{'loglevel'};
         my $marklog = $rreq->{'marklog'};
-        my $res;
+        my $rres; #  short for riap response
         if ($loglvl) {
             $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
             Log::Any::Adapter->set(
@@ -100,17 +78,13 @@ sub call {
                     $writer->write($msg);
                 },
             );
-            $res = ;
+            $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
         } else {
-            $res = $exec_cmd->();
+            $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
         }
 
-        $self->postprocess_result($cmd_res);
-
-        $env->{'riap.response'} = $res;
-
-        my $fmt_method = "format_$ofmt";
-        my ($res, $ct) = $self->$fmt_method($cmd_res, $env);
+        $env->{'riap.response'} = $rres;
+        my ($fres, $ct) = $self->format_result($rres, $env);
 
         if ($writer) {
             $writer->write($marklog ? "R$res" : $res);
@@ -122,7 +96,7 @@ sub call {
 }
 
 1;
-# ABSTRACT: Send Riap request
+# ABSTRACT: Send Riap request to Riap server and send the response to client
 
 =head1 SYNOPSIS
 
@@ -130,41 +104,25 @@ sub call {
  use Plack::Builder;
 
  builder {
-     enable "PeriAHS::Request";
+     enable "PeriAHS::Respond";
  };
 
 
 =head1 DESCRIPTION
 
 This middleware sends Riap request (C<$env->{"riap.request"}>) to Riap client
-(L<Perinci::Access>). This middleware is the "meat" of the application and
-should be put after all the parsing, authentication, and authorization
+(L<Perinci::Access> object, stored in C<$env->{"periahs.riap_client"}> by
+PeriAHS::ParseRequest middleware), format the result, and send it to client.
+This middleware is the one that sends response to client and should be put as
+the last middleware after all the parsing, authentication, and authorization
 middlewares.
 
-The result will be put in C<$env->{"riap.response"}>.
+The result will also be put in C<$env->{"riap.response"}>.
 
 
 =head1 CONFIGURATIONS
 
 =over 4
-
-=item * default_output_format => STR, default 'json'
-
-The default format to use if client does not specify 'output_format' SS request
-key.
-
-If unspecified, some detection logic will be done to determine default format:
-if client is a GUI browser, 'html'; otherwise, 'json'.
-
-=item * allowed_output_formats => ARRAY|REGEX (default [qw/html json phps yaml/])
-
-Specify what output formats are allowed. When client requests an unallowed
-format, 400 error is returned.
-
-=item * time_limit => INT | CODE
-
-Impose time limit, using alarm(). If coderef is given, it will be called for
-every request with ($self, $env) argument and expected to return the time limit.
 
 =back
 

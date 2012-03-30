@@ -6,8 +6,6 @@ use 5.010;
 use strict;
 use warnings;
 use Log::Any::App qw($log);
-use Perinci::Access;
-use Perinci::Access::InProcess;
 use Perinci::CmdLine ();
 use Plack::Builder;
 use Plack::Runner;
@@ -93,9 +91,8 @@ _
         daemonize => ['bool' => {
             default => 0,
             summary => 'If true, will daemonize into background',
+            arg_aliases => {D=>{}},
         }],
-
-        D => {summary=>'Equivalent to ', alias_for=>'daemonize'},
 
     },
 };
@@ -127,12 +124,6 @@ sub serve {
         gen_meta_for_module(module=>$m, load=>0);
     }
 
-    my $pa = Perinci::Access->new(
-        handlers => {
-            pm => Perinci::Access::InProcess->new(load=>0),
-        }
-    );
-
     my $app =
         builder {
             enable "PeriAHS::LogAccess",
@@ -140,7 +131,7 @@ sub serve {
 
             enable "PeriAHS::ParseRequest";
 
-            enable "SubSpec::Respond";
+            enable "PeriAHS::Respond";
         };
 
     my @argv;

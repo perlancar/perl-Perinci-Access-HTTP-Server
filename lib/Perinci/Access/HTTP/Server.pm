@@ -26,22 +26,6 @@ of command.
 To get started, currently see the source code for B<peri-htserve> and each
 middleware's documentation.
 
-For formatting response, PeriAHS uses L<Data::Format::Pretty>.
-
-
-=head1 ADDITIONAL RINCI REQUEST KEYS
-
-Aside those specified by L<Riap> and L<Riap::HTTP>, below are additional Rinci
-request keys recognized by PeriAHS:
-
-=over 4
-
-=item * fmt_opts => HASH
-
-Formatting options, passed to Data::Format::Pretty::format_pretty().
-
-=back
-
 
 =head1 FAQ
 
@@ -131,9 +115,7 @@ Take a look at L<Serabi>.
 
 =head2 I want to support another output format (e.g. XML, MessagePack, etc).
 
-Just preload the appropriate Data::Format::Pretty::* formatter modules (like,
-say, L<Data::Format::Pretty::Perl>) in your application. The format will
-automatically be supported.
+See L<Perinci::Result::Format>.
 
 =head2 I want to automatically reload modules that changed on disk.
 

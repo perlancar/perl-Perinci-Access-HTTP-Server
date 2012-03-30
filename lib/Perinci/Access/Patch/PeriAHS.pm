@@ -15,7 +15,7 @@ sub actionmeta_srvinfo { +{
 sub action_srvinfo {
     my ($self, $uri, $extra) = @_;
 
-    my @fmt = sort map {s/::$//; $_} grep {/::$/} keys %Data::Format::Pretty::;
+    my @fmt = sort map {s/::$//; $_} grep {/::$/} keys %Perinci::Formatter::;
 
     [200, "OK", {
         srvurl => "TODO",

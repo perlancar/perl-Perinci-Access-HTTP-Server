@@ -11,12 +11,17 @@ use Plack::Util::Accessor qw(
                                 parse_form
                                 parse_path_info
                                 accept_yaml
+
+                                riap_client
                         );
 
 use JSON;
 use Perinci::Access;
+use Perinci::Access::InProcess;
 use Perinci::Access::Patch::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
+use Perinci::Sub::property::result_postfilter;
+use Perinci::Sub::property::timeout;
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;
 
@@ -32,7 +37,21 @@ sub prepare_app {
     $self->{parse_form}      //= 1;
     $self->{parse_path_info} //= 0;
 
-    $self->{_pa} = Perinci::Access->new;
+    $self->{riap_client}     //= Perinci::Access->new(
+        handlers => {
+            pm => Perinci::Access::InProcess->new(
+                load => 0,
+                extra_wrapper_convert => {
+                    result_postfilter => {
+                        re   => 'str',
+                        date => 'epoch',
+                        code => 'str',
+                    },
+                    #timeout => 300,
+                },
+            ),
+        }
+    );
 }
 
 sub call {
@@ -52,7 +71,7 @@ sub call {
     } else {
         $fmt = "json";
     }
-    $env->{_default_fmt} = $fmt;
+    $env->{"periahs.default_fmt"} = $fmt;
 
     # parse Riap request keys from HTTP headers (required by spec)
     for my $k0 (keys %$env) {
@@ -128,13 +147,13 @@ sub call {
         my $form = $preq->parameters;
 
         # special name 'callback' is for jsonp
-        if (($rreq->{fmt} // $env->{_default_fmt}) eq 'json' &&
+        if (($rreq->{fmt} // $env->{"periahs.default_fmt"}) eq 'json' &&
                 defined($form->{callback})) {
             return errpage(
                 $env, [400, "Invalid callback syntax, please use ".
                            "a valid JS identifier"])
                 unless $form->{callback} =~ /\A[A-Za-z_]\w*\z/;
-            $env->{_jsonp_callback} = $form->{callback};
+            $env->{"periahs.jsonp_callback"} = $form->{callback};
             delete $form->{callback};
         }
 
@@ -181,7 +200,7 @@ sub call {
     if ($self->{parse_path_info}) {
         {
             last unless $rreq->{uri};
-            my $res = $self->{_pa}->request(meta => $rreq->{uri});
+            my $res = $self->{riap_client}->request(meta => $rreq->{uri});
             last unless $res->[0] == 200;
             my $meta = $res->[2];
             last unless $meta;
@@ -204,10 +223,10 @@ sub call {
     # defaults
     $rreq->{v}      //= 1.1;
     $rreq->{action} //= 'call';
-    $rreq->{fmt}    //= $env->{_default_fmt};
+    $rreq->{fmt}    //= $env->{"periahs.default_fmt"};
 
     # also put Riap client for later phases
-    $env->{_pa} = $self->{_pa};
+    $env->{"periahs.riap_client"} = $self->{riap_client};
 
     # sanity: check required keys
     for (qw/uri v action/) {
@@ -216,19 +235,11 @@ sub call {
     }
 
     # normalize into URI object
-    $rreq->{uri} = $self->{_pa}->_normalize_uri($rreq->{uri});
+    $rreq->{uri} = $self->{riap_client}->_normalize_uri($rreq->{uri});
 
     # continue to app
     $self->app->($env);
 }
-
-# since we directly load Data::Format::Pretty::FORMAT, make sure that module for
-# the 'json' format exists. admittedly, this is not the ideal place to do it,
-# but this is the least worst, IMO.
-package Data::Format::Pretty::json;
-no warnings;
-require Data::Format::Pretty::CompactJSON;
-*format_pretty = \&Data::Format::Pretty::CompactJSON::format_pretty;
 
 1;
 # ABSTRACT: Parse Riap request from HTTP request
@@ -252,6 +263,28 @@ environment) and should normally be the first middleware put in the stack.
 =head2 Parsing result
 
 The result of parsing will be put in C<$env->{"riap.request"}> hashref.
+
+Aside from that, this middleware also sets these for convenience of later
+middlewares:
+
+=over 4
+
+=item * $env->{'periahs.default_fmt'} => STR
+
+Default output format, will be used for response if C<fmt> is not specified in
+Rinci request. Determined using some simple heuristics, i.e. graphical browser
+like Firefox or Chrome will get 'HTML', command-line browser like Wget or Curl
+will get 'Text', others will get 'json'.
+
+=item * $env->{'periahs.jsonp_callback'} => STR
+
+From form variable C<callback>.
+
+=item * $env->{'periahs.riap_client'} => OBJ
+
+Store the Riap client (instance of L<Perinci::Access>).
+
+=back
 
 =head2 Parsing process
 
@@ -365,6 +398,12 @@ Example:
          $env->{PATH_INFO} = $m->{pi};
      },
  ]
+
+=item * riap_client => OBJ
+
+By default, a L<Perinci::Access> object will be instantiated (and later put into
+C<$env->{'periahs.riap_client'}> for the next middlewares) to perform Riap
+requests. You can supply a custom object here.
 
 =back
 

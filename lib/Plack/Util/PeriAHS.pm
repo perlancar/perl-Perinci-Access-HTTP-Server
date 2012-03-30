@@ -20,15 +20,16 @@ my $json = JSON->new->allow_nonref;
 sub errpage {
     my ($env, $res) = @_;
 
-    my $fmt = $env->{'riap.request'}{fmt} // $env->{_default_fmt} // 'json';
+    my $fmt = $env->{'riap.request'}{fmt} //
+        $env->{"periahs.default_fmt"} // 'json';
 
-    if ($fmt eq 'HTML') {
+    if ($fmt =~ /^html$/i) {
         return [
             200,
             ["Content-Type" => "text/html"],
             ["<h1>Error $res->[0]</h1>\n\n$res->[1]\n"],
         ];
-    } elsif ($fmt =~ /^(?:Text|SimpleText)/) {
+    } elsif ($fmt =~ /text$/i) {
         return [
             200,
             ["Content-Type" => "text/plain"],
