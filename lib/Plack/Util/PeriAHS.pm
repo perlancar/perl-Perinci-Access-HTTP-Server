@@ -3,6 +3,7 @@ package Plack::Util::PeriAHS;
 use 5.010;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(errpage);
@@ -18,30 +19,33 @@ use JSON;
 my $json = JSON->new->allow_nonref;
 
 sub errpage {
-    my ($env, $res) = @_;
+    my ($env, $rres) = @_;
 
     my $fmt = $env->{'riap.request'}{fmt} //
         $env->{"periahs.default_fmt"} // 'json';
+    my $pres;
 
     if ($fmt =~ /^html$/i) {
-        return [
+        $pres = [
             200,
             ["Content-Type" => "text/html"],
-            ["<h1>Error $res->[0]</h1>\n\n$res->[1]\n"],
+            ["<h1>Error $rres->[0]</h1>\n\n$rres->[1]\n"],
         ];
     } elsif ($fmt =~ /text$/i) {
-        return [
+        $pres = [
             200,
             ["Content-Type" => "text/plain"],
-            ["Error $res->[0]: $res->[1]\n"],
+            ["Error $rres->[0]: $rres->[1]\n"],
         ];
     } else {
-        return [
+        $pres = [
             200,
             ["Content-Type" => "application/json"],
-            [$json->encode($res)]
+            [$json->encode($rres)]
         ];
     }
+
+    $log->tracef("Returning error page: %s", $pres);
 }
 
 1;
