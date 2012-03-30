@@ -3,6 +3,7 @@ package Plack::Middleware::PeriAHS::LogAccess;
 use 5.010;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
@@ -33,6 +34,8 @@ sub prepare_app {
 }
 
 sub call {
+    $log->tracef("=> PeriAHS::LogAccess middleware");
+
     my ($self, $env) = @_;
 
     $env->{'periahs.start_request_time'} = time();

@@ -28,6 +28,8 @@ sub prepare_app {
 }
 
 sub call {
+    $log->tracef("=> PeriAHS::ParseRequest middleware");
+
     my ($self, $env) = @_;
 
     my $rreq = $env->{"riap.request"};

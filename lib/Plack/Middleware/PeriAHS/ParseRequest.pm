@@ -3,6 +3,7 @@ package Plack::Middleware::PeriAHS::ParseRequest;
 use 5.010;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
 use Plack::Request;
@@ -55,19 +56,22 @@ sub prepare_app {
 }
 
 sub call {
+    $log->tracef("=> PeriAHS::ParseRequest middleware");
+
     my ($self, $env) = @_;
 
     my $rreq = $env->{"riap.request"} //= {};
+
+    # put Riap client for later phases
+    $env->{"periahs.riap_client"} = $self->{riap_client};
 
     # first determine the default output format (fmt), so we can return error
     # page in that format
     my $acp = $env->{HTTP_ACCEPT} // "";
     my $ua  = $env->{HTTP_USER_AGENT} // "";
     my $fmt;
-    if ($acp =~ m!/html!) {
-        $fmt = "HTML";
-    } elsif ($acp =~ m!text/! || $ua =~ m!Wget/|curl/!) {
-        $fmt = "Text";
+    if ($acp =~ m!text/! || $ua =~ m!Wget/|curl/!) {
+        $fmt = "text";
     } else {
         $fmt = "json";
     }
@@ -225,9 +229,6 @@ sub call {
     $rreq->{action} //= 'call';
     $rreq->{fmt}    //= $env->{"periahs.default_fmt"};
 
-    # also put Riap client for later phases
-    $env->{"periahs.riap_client"} = $self->{riap_client};
-
     # sanity: check required keys
     for (qw/uri v action/) {
         defined($rreq->{$_}) or return errpage(
@@ -236,6 +237,8 @@ sub call {
 
     # normalize into URI object
     $rreq->{uri} = $self->{riap_client}->_normalize_uri($rreq->{uri});
+
+    $log->tracef("Riap request: %s", $rreq);
 
     # continue to app
     $self->app->($env);

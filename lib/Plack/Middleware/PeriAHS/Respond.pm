@@ -3,6 +3,7 @@ package Plack::Middleware::PeriAHS::Respond;
 use 5.010;
 use strict;
 use warnings;
+use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw();
@@ -36,7 +37,7 @@ sub format_result {
     }
     my $ct = $formatter->[1];
 
-    my $fres = Perinci::Result::Format::format($fmt, $rres);
+    my $fres = Perinci::Result::Format::format($rres, $fmt);
 
     if ($fmt =~ /^json/ && defined($env->{"periahs.jsonp_callback"})) {
         $fres = $env->{"periahs.jsonp_callback"}."($fres)";
@@ -46,13 +47,17 @@ sub format_result {
 }
 
 sub call {
+    $log->tracef("=> PeriAHS::Respond middleware");
+
     my ($self, $env) = @_;
 
     die "This middleware needs psgi.streaming support"
         unless $env->{'psgi.streaming'};
 
     my $rreq = $env->{"riap.request"};
-    my $pa   = $env->{"periahs.riap_client"};
+    my $pa   = $env->{"periahs.riap_client"}
+        or die "\$env->{'periahs.riap_client'} not defined, ".
+            "perhaps ParseRequest middleware has not run?";
 
     return sub {
         my $respond = shift;
