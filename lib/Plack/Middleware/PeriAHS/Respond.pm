@@ -43,6 +43,7 @@ sub format_result {
 
     ($fres, $ct);
 }
+my %str_levels = qw(1 critical 2 error 3 warning 4 info 5 debug 6 trace);
 
 sub call {
     $log->tracef("=> PeriAHS::Respond middleware");
@@ -65,12 +66,12 @@ sub call {
         my $marklog = $rreq->{'marklog'};
         my $rres; #  short for riap response
         $env->{'periahs.start_action_time'} = [gettimeofday];
-        if ($loglvl) {
+        if ($loglvl > 0) {
             $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
             Log::Any::Adapter->set(
                 {lexically=>\my $lex},
                 "Callback",
-                min_level => $loglvl,
+                min_level => $str_levels{$loglvl} // 'warning',
                 logging_cb => sub {
                     my ($method, $self, $format, @params) = @_;
                     my $msg = join(
