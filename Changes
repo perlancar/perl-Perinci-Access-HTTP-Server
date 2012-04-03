@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.14     2012-04-03
+
+         No functional changes. Small fixes and tweaks, e.g. respect 'Accept'
+         request header, require at least one module in 'peri-htserve', etc.
+
+
 0.13     2012-03-30
 
          Rename distribution from Sub-Spec-HTTP-Server to
