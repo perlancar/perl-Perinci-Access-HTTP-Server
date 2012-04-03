@@ -175,7 +175,8 @@ sub call {
                 $k = $1;
                 #$log->trace("CGI parameter $k (json)=$v");
                 eval { $v = $json->decode($v) };
-                return errpage("Invalid JSON in query parameter $k: $@")
+                return errpage(
+                    $env, [400, "Invalid JSON in query parameter $k: $@"])
                     if $@;
             } elsif ($k =~ /(.+):y$/) {
                 $k = $1;
