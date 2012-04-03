@@ -44,6 +44,7 @@ _
     args => {
         modules => ['array*' => {
             of => 'str*',
+            min_len => 1,
             arg_pos => 0,
             arg_greedy => 1,
             summary => 'List of modules to load',
@@ -109,6 +110,9 @@ sub serve {
 
     my $riap_access_log_path = $args{riap_access_log_path} //
         "$ENV{HOME}/peri-htserve-riap_access.log";
+
+    return [400, "Please specify at least 1 module"]
+        unless $args{modules} && @{$args{modules}};
 
     my @modules;
     for my $m (@{$args{modules}}) {
