@@ -64,6 +64,15 @@ test_ParseRequest_middleware(
                           fmt=>'json', args=>{a=>1, b=>[2,3]}},
         },
         {
+            name      => 'invalid json in body',
+            args      => [POST => '/api/Foo/bar',
+                          ['Content-Type'=>'application/json'],
+                          '{"a":1,"b":[2,3]'],
+            rreq      => undef,
+            ct        => 'application/json',
+            content   => qr/invalid json/i,
+        },
+        {
             name      => 'sanity check for args',
             args      => [POST => '/api/Foo/bar',
                           ['Content-Type'=>'application/json'],
@@ -118,6 +127,13 @@ test_ParseRequest_middleware(
             args      => [GET => '/api/Foo/bar?a=1&b:j=[2,3]&-riap-foo=bar'],
             rreq      => {v=>1.1, action=>'call', uri=>'pm:/Foo/bar',
                           fmt=>'json', foo=>'bar', args=>{a=>1, b=>[2,3]}},
+        },
+        {
+            name      => 'invalid json in web form',
+            args      => [GET => '/api/Foo/bar?a=1&b:j=['],
+            rreq      => undef,
+            ct        => 'application/json',
+            content   => qr/invalid json/i,
         },
         {
             name      => 'request/args keys from form does not override '.
