@@ -35,7 +35,7 @@ sub errpage {
         $pres = [
             200,
             ["Content-Type" => "text/plain"],
-            ["Error $rres->[0]: $rres->[1]\n"],
+            ["Error $rres->[0]: ".$rres->[1].($rres->[1] =~ /\n$/ ? "":"\n")],
         ];
     } else {
         $pres = [
