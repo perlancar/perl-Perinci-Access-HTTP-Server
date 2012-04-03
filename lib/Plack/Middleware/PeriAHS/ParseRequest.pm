@@ -70,7 +70,13 @@ sub call {
     my $acp = $env->{HTTP_ACCEPT} // "";
     my $ua  = $env->{HTTP_USER_AGENT} // "";
     my $fmt;
-    if ($ua =~ m!Wget/|curl/!) {
+    if ($acp =~ m!^text/(?:x-)?yaml$!) {
+        $fmt = "yaml";
+    } elsif ($acp eq 'application/json') {
+        $fmt = "json";
+    } elsif ($acp eq 'text/plain') {
+        $fmt = "text";
+    } elsif ($ua =~ m!Wget/|curl/!) {
         $fmt = "text";
     } elsif ($ua =~ m!Mozilla/!) {
         $fmt = "json";
