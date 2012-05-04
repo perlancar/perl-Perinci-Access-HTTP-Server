@@ -14,6 +14,8 @@ use Plack::Util::Accessor qw(
                                 accept_yaml
 
                                 riap_client
+                                use_tx
+                                custom_tx_manager
                         );
 
 use JSON;
@@ -33,12 +35,14 @@ my $json = JSON->new->allow_nonref;
 sub prepare_app {
     my $self = shift;
 
-    $self->{match_uri}       //= qr/(?<uri>[^?]*)/;
-    $self->{accept_yaml}     //= 0;
-    $self->{parse_form}      //= 1;
-    $self->{parse_path_info} //= 0;
+    $self->{match_uri}         //= qr/(?<uri>[^?]*)/;
+    $self->{accept_yaml}       //= 0;
+    $self->{parse_form}        //= 1;
+    $self->{parse_path_info}   //= 0;
+    $self->{use_tx}            //= 0;
+    $self->{custom_tx_manager} //= undef;
 
-    $self->{riap_client}     //= Perinci::Access->new(
+    $self->{riap_client}       //= Perinci::Access->new(
         handlers => {
             pm => Perinci::Access::InProcess->new(
                 load => 0,
@@ -50,6 +54,8 @@ sub prepare_app {
                     },
                     #timeout => 300,
                 },
+                use_tx            => $self->{use_tx},
+                custom_tx_manager => $self->{custom_tx_manager},
             ),
         }
     );
@@ -417,6 +423,14 @@ Example:
 By default, a L<Perinci::Access> object will be instantiated (and later put into
 C<$env->{'periahs.riap_client'}> for the next middlewares) to perform Riap
 requests. You can supply a custom object here.
+
+=item * use_tx => BOOL (default 0)
+
+Will be passed to L<Perinci::Access::InProcess> constructor.
+
+=item * custom_tx_manager => STR|CODE
+
+Will be passed to L<Perinci::Access::InProcess> constructor.
 
 =back
 
