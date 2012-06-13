@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-package peri_htserve; # just to make PodWeaver happy
-
 use 5.010;
 use strict;
 use warnings;
@@ -169,9 +167,10 @@ sub serve {
     [200, "OK"];
 }
 
-Perinci::CmdLine->new(url => '/peri_htserve/serve')->run;
+Perinci::CmdLine->new(url => '/main/serve')->run;
 
 #ABSTRACT: Serve Perl modules over HTTP(S) using the Riap::HTTP protocol
+#PODNAME: peri-htserve
 
 =head1 SYNOPSIS
 
