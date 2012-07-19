@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Log::Any qw($log);
 
+use File::HomeDir;
 use Module::List qw(list_modules);
 use Module::Load;
 use Perinci::CmdLine ();
@@ -107,7 +108,7 @@ sub serve {
     $log->infof("Starting server (using %s) ...", $server);
 
     my $riap_access_log_path = $args{riap_access_log_path} //
-        "$ENV{HOME}/peri-htserve-riap_access.log";
+        File::HomeDir->my_home . "/peri-htserve-riap_access.log";
 
     return [400, "Please specify at least 1 module"]
         unless $args{modules} && @{$args{modules}};
