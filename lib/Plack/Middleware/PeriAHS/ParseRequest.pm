@@ -44,7 +44,7 @@ sub prepare_app {
 
     $self->{riap_client}       //= Perinci::Access->new(
         handlers => {
-            pm => Perinci::Access::InProcess->new(
+            pl => Perinci::Access::InProcess->new(
                 load => 0,
                 extra_wrapper_convert => {
                     result_postfilter => {
