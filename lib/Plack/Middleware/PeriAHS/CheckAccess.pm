@@ -25,7 +25,7 @@ sub prepare_app {
     my $self = shift;
 
     $self->{allow_log}         //= 0;
-    $self->{allow_uri_scheme}  //= ['pm'];
+    $self->{allow_uri_scheme}  //= ['pl'];
 }
 
 sub call {
@@ -96,7 +96,7 @@ Whether to allow request for returning log messages (request key C<loglevel>
 with values larger than 0). You might want to turn this off on production
 servers.
 
-=item * allow_uri_scheme => ARRAY|REGEX (default ['pm'])
+=item * allow_uri_scheme => ARRAY|REGEX (default ['pl'])
 
 Which URI schemes are allowed. By default only local schemes are allowed. Add
 'http' or 'https' if you want proxying capability.
@@ -105,12 +105,12 @@ Which URI schemes are allowed. By default only local schemes are allowed. Add
 
 Which URI schemes are forbidden.
 
-=item * allow_uri => ARRAY|REGEX (default ['pm'])
+=item * allow_uri => ARRAY|REGEX (default ['pl'])
 
-Allowed URIs. Note that URIs are normalized with scheme C<pm> if unschemed.
+Allowed URIs. Note that URIs are normalized with scheme C<pl> if unschemed.
 Example:
 
-=item * deny_uri => ARRAY|REGEX (default ['pm'])
+=item * deny_uri => ARRAY|REGEX (default ['pl'])
 
 Forbidden URIs.
 
