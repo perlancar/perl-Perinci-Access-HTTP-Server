@@ -18,6 +18,7 @@ use Perinci::Gen::ForModule qw(gen_meta_for_module);
 our %SPEC;
 
 $SPEC{serve} = {
+    v => 1.1,
     summary => 'Serve Perl modules over HTTP(S) using Riap::HTTP protocol',
     description => <<'_',
 
@@ -41,11 +42,13 @@ Plack::Middleware::PeriAHS::* middlewares directly.
 
 _
     args => {
-        modules => ['array*' => {
-            of => 'str*',
-            min_len => 1,
-            arg_pos => 0,
-            arg_greedy => 1,
+        modules => {
+            schema => ['array*' => {
+                of => 'str*',
+                min_len => 1,
+            }],
+            pos => 0,
+            greedy => 1,
             summary => 'List of modules to load',
             description => <<'_',
 
@@ -53,50 +56,68 @@ Either specify exact module name or one using wildcard (e.g. 'Foo::Bar::*', in
 which Module::List will be used to load all modules under 'Foo::Bar::').
 
 _
-        }],
-        riap_access_log_path => ['str' => {
+        },
+        riap_access_log_path => {
+            schema => ['str' => {}],
             summary => 'Path for Riap request access log file',
             description => <<'_',
 Default is ~/peri-htserve-riap_access.log
 _
-        }],
-        server => ['str*' => {
+        },
+        server => {
+            schema => ['str*' => {
+                in => [qw/Starman Gepok/],
+                default => 'Gepok',
+            }],
             summary => 'Choose PSGI server',
             description => <<'_',
 
 Currently only Starman or Gepok is supported. Default is Gepok.
 
 _
-            in => [qw/Starman Gepok/],
-            default => 'Gepok',
-        }],
-        starman_host => ['str' => {
+        },
+        starman_host => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Starman',
-        }],
-        starman_port => ['int' => {
+        },
+        starman_port => {
+            schema => ['int' => {}],
             summary => 'Will be passed to Starman',
-        }],
-        gepok_http_ports => ['str' => {
+        },
+        gepok_http_ports => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
-        }],
-        gepok_https_ports => ['str' => {
+        },
+        gepok_https_ports => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
-        }],
-        gepok_unix_sockets => ['str' => {
+        },
+        gepok_unix_sockets => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
-        }],
-        gepok_ssl_key_file => ['str' => {
+        },
+        gepok_ssl_key_file => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
-        }],
-        gepok_ssl_cert_file => ['str' => {
+        },
+        gepok_ssl_cert_file => {
+            schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
-        }],
-        daemonize => ['bool' => {
-            default => 0,
+        },
+        daemonize => {
+            schema => ['bool' => {
+                default => 0,
+            }],
             summary => 'If true, will daemonize into background',
-            arg_aliases => {D=>{}},
-        }],
-
+            cmdline_aliases => {D=>{}},
+        },
+        library => {
+            schema => ['array' => {
+                of => 'str*',
+            }],
+            summary => 'Add directory to library search path, a la Perl\'s -I',
+            cmdline_aliases => {I=>{}},
+        },
     },
 };
 sub serve {
@@ -112,6 +133,11 @@ sub serve {
 
     return [400, "Please specify at least 1 module"]
         unless $args{modules} && @{$args{modules}};
+
+    for my $dir (@{ $args{library} // [] }) {
+        require lib;
+        lib->import($dir);
+    }
 
     my @modules;
     for my $m (@{$args{modules}}) {
