@@ -28,7 +28,7 @@ test_CheckAccess_middleware(
 
 test_CheckAccess_middleware(
     name => "allow_uri, deny_uri",
-    args => {allow_uri=>['pm:/Foo/a', 'pm:/Foo/x'], deny_uri=>qr/x/},
+    args => {allow_uri=>['pl:/Foo/a', 'pl:/Foo/x'], deny_uri=>qr/x/},
     requests => [
         {args => [GET => '/Foo/a?x=1'], allowed => 1},
         {args => [GET => '/Foo/x'],     allowed => 0},
@@ -37,7 +37,7 @@ test_CheckAccess_middleware(
 );
 test_CheckAccess_middleware(
     name => "allow_uri_scheme, deny_uri_scheme",
-    args => {allow_uri_scheme=>['pm', 'a', 'ax'], deny_uri_scheme=>qr/x/},
+    args => {allow_uri_scheme=>['pl', 'a', 'ax'], deny_uri_scheme=>qr/x/},
     requests => [
         {args => [GET => '/1', ["X-Riap-URI"=>"/x"]]  , allowed => 1},
         {args => [GET => '/2', ["X-Riap-URI"=>"a:1"]] , allowed => 1},
