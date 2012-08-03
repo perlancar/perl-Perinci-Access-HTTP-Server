@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.17     2012-08-03 (SHARYANTO)
+
+         No functional changes. Reupload to work around PAUSE (erronous) version
+         checking.
+
+
 0.16     2012-08-02 (SHARYANTO)
 
          - peri-htserve: Add --library (-I).
