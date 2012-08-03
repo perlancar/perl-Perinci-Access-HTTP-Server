@@ -1,5 +1,13 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.20     2012-08-03 (SHARYANTO)
+
+         No functional changes. Replace
+         Perinci::Sub::property::result_postfilter with Data::Clean::JSON (works
+         better, less wasteful code generation if there are hundreds+ of
+         functions).
+
+
 0.19     2012-08-03 (SHARYANTO)
 
          - Third time's the charm to work around PAUSE, now uses Module::Patch.
