@@ -4,7 +4,10 @@ use 5.010;
 use strict;
 use warnings;
 
-# VERSION
+# don't use '# VERSION' in this file, PAUSE reads it and assume
+# Perinci::Access::Base's version is also this (wrong).
+
+# xVERSION
 
 use Perinci::Access::Base;
 package Perinci::Access::Base;
