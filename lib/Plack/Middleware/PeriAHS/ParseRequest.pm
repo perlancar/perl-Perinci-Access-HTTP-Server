@@ -21,7 +21,7 @@ use Plack::Util::Accessor qw(
 use JSON;
 use Perinci::Access;
 use Perinci::Access::InProcess;
-use Perinci::Access::Patch::PeriAHS;
+use Perinci::Access::Base::patch::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Perinci::Sub::property::result_postfilter;
 use Perinci::Sub::property::timeout;
