@@ -23,8 +23,6 @@ use Perinci::Access;
 use Perinci::Access::InProcess;
 use Perinci::Access::Base::patch::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
-use Perinci::Sub::property::result_postfilter;
-use Perinci::Sub::property::timeout;
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;
 
@@ -47,11 +45,6 @@ sub prepare_app {
             pl => Perinci::Access::InProcess->new(
                 load => 0,
                 extra_wrapper_convert => {
-                    result_postfilter => {
-                        re   => 'str',
-                        date => 'epoch',
-                        code => 'str',
-                    },
                     #timeout => 300,
                 },
                 use_tx            => $self->{use_tx},
