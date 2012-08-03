@@ -6,6 +6,7 @@ use warnings;
 
 use Module::Patch 0.10 qw();
 use base qw(Module::Patch);
+use Perinci::Result::Format;
 
 # VERSION
 
@@ -30,12 +31,9 @@ sub patch_data {
                 code => sub {
                     my ($self, $uri, $extra) = @_;
 
-                    my @fmt = sort map {s/::$//; $_} grep {/::$/}
-                        keys %Perinci::Formatter::;
-
                     [200, "OK", {
                         srvurl => "TODO",
-                        fmt    => \@fmt,
+                        fmt    => [keys %Perinci::Result::Format::Formats],
                     }];
                 }
             },
