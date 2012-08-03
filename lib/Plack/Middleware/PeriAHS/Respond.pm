@@ -8,12 +8,15 @@ use Log::Any '$log';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw();
 
+use Data::Clean::JSON;
 use Log::Any::Adapter;
 use Perinci::Result::Format;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
 # VERSION
+
+our $cleaner = Data::Clean::JSON->new;
 
 sub prepare_app {
     my $self = shift;
@@ -88,6 +91,8 @@ sub call {
             $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
         }
         $env->{'periahs.finish_action_time'} = [gettimeofday];
+
+        $cleaner->clean_in_place($rres);
 
         $env->{'riap.response'} = $rres;
         my ($fres, $ct) = $self->format_result($rres, $env);
