@@ -319,10 +319,10 @@ The default C<match_uri> is qr/(?<uri>[^?]*)/.
 B<From form variables>. If C<parse_form> is enabled, C<args> request key will be
 set (or added) from GET/POST request variables, for example:
 http://host/api/foo/bar?a=1&b:j=[2] will set arguments C<a> and C<b> (":j"
-suffix means value is JSON-encoded; ":y" and ":p" are also accepted if the
-C<accept_yaml> configurations are enabled). In addition, request variables
-C<-riap-*> are also accepted for setting other Riap request keys. Unknown Riap
-request key or encoding suffix will result in 400 error.
+suffix means value is JSON-encoded; ":y" is also accepted if the C<accept_yaml>
+configurations are enabled). In addition, request variables C<-riap-*> are also
+accepted for setting other Riap request keys. Unknown Riap request key or
+encoding suffix will result in 400 error.
 
 If request format is JSON and form variable C<callback> is defined, then it is
 assumed to specify callback for JSONP instead part of C<args>. "callback(json)"
