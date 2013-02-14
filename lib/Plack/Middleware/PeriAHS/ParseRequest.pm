@@ -5,6 +5,8 @@ use strict;
 use warnings;
 use Log::Any '$log';
 
+use Perinci::Access::Base::Patch::PeriAHS;
+
 use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util::Accessor qw(
@@ -22,7 +24,6 @@ use Plack::Util::Accessor qw(
 use JSON;
 use Perinci::Access;
 use Perinci::Access::InProcess;
-use Perinci::Access::Base::patch::PeriAHS;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;

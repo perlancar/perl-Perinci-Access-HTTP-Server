@@ -1,10 +1,10 @@
-package Perinci::Access::Base::patch::PeriAHS;
+package Perinci::Access::Base::Patch::PeriAHS;
 
 use 5.010;
 use strict;
 use warnings;
 
-use Module::Patch 0.10 qw();
+use Module::Patch 0.12 qw();
 use base qw(Module::Patch);
 use Perinci::Result::Format;
 

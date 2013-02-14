@@ -5,6 +5,9 @@ use strict;
 use warnings;
 use Log::Any qw($log);
 
+# early loading to avoid target module being loaded before the patch
+use Perinci::Access::Base::Patch::PeriAHS;
+
 use File::HomeDir;
 use Module::List qw(list_modules);
 use Module::Load;
