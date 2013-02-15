@@ -121,21 +121,30 @@ _
             summary => 'Add directory to library search path, a la Perl\'s -I',
             cmdline_aliases => {I=>{}},
         },
+
+        parse_form => {
+            schema => ['bool'],
+            summary => 'Passed to Plack::Middleware::PeriAHS::ParseRequest',
+        },
+        parse_reform => {
+            schema => ['bool'],
+            summary => 'Passed to Plack::Middleware::PeriAHS::ParseRequest',
+        },
+        parse_path_info => {
+            schema => ['bool'],
+            summary => 'Passed to Plack::Middleware::PeriAHS::ParseRequest',
+        },
     },
+    '_perinci.sub.wrapper.validate_args' => 0,
 };
 sub serve {
-    my %args = @_;
+    my %args = @_; # VALIDATE_ARGS
 
-    my $server = $args{server} // "Gepok";
-    $server =~ /\A(Gepok|Starman)\z/ or $server = "Gepok";
-
+    my $server = $args{server};
     $log->infof("Starting server (using %s) ...", $server);
 
     my $riap_access_log_path = $args{riap_access_log_path} //
         File::HomeDir->my_home . "/peri-htserve-riap_access.log";
-
-    return [400, "Please specify at least 1 module"]
-        unless $args{modules} && @{$args{modules}};
 
     for my $dir (@{ $args{library} // [] }) {
         require lib;
@@ -161,12 +170,19 @@ sub serve {
 
     my $app =
         builder {
-            enable "PeriAHS::LogAccess",
-                dest => $riap_access_log_path;
+            enable(
+                "PeriAHS::LogAccess",
+                dest => $riap_access_log_path
+            );
 
             #enable "PeriAHS::CheckAccess";
 
-            enable "PeriAHS::ParseRequest";
+            enable(
+                "PeriAHS::ParseRequest",
+                parse_path_info => $args{parse_path_info},
+                parse_form      => $args{parse_form},
+                parse_reform    => $args{parse_reform},
+            );
 
             enable "PeriAHS::Respond";
         };

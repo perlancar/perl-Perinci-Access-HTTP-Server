@@ -162,6 +162,7 @@ sub call {
     # get ss request key from form variables (optional)
     if ($self->{parse_form}) {
         my $form = $preq->parameters;
+        $env->{'periahs._form_cache'} = $form;
 
         # special name 'callback' is for jsonp
         if (($rreq->{fmt} // $env->{"periahs.default_fmt"}) eq 'json' &&
@@ -215,7 +216,8 @@ sub call {
         }
     }
 
-    if ($self->{parse_reform}) {
+    if ($self->{parse_reform} && $env->{'periahs._form_cache'} &&
+            $env->{'periahs._form_cache'}{'-submit'}) {
         {
             last unless $rreq->{uri};
             my $res = $env->{'periahs._meta_res_cache'} //
@@ -227,15 +229,17 @@ sub call {
             last unless $meta;
             last unless $meta->{args};
 
-            require ReForm;
+            require ReForm::HTML;
             require Perinci::Sub::To::ReForm;
-            my $rf = ReForm->new(
-                form => Perinci::Sub::To::ReForm::gen_form_spec_from_rinci_meta(
+            my $rf = ReForm::HTML->new(
+                spec => Perinci::Sub::To::ReForm::gen_form_spec_from_rinci_meta(
                     meta => $meta,
                 )
             );
-            my $data = $rf->get_renderer('HTML')->get_data($env);
-            $rreq->{args} = $data;
+            my $res = $rf->get_data(psgi_env => $env);
+            return errpage($env, [$res->[0], $res->[1]])
+                unless $res->[0] == 200;
+            $rreq->{args} = $res->[2];
         }
     }
 
