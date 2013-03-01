@@ -236,7 +236,7 @@ sub call {
                     meta => $meta,
                 )
             );
-            my $res = $rf->get_data(psgi_env => $env);
+            $res = $rf->get_data(psgi_env => $env);
             return errpage($env, [$res->[0], $res->[1]])
                 unless $res->[0] == 200;
             $rreq->{args} = $res->[2];
