@@ -10,11 +10,14 @@ use Plack::Util::Accessor qw();
 
 use Data::Clean::JSON;
 use Log::Any::Adapter;
-use Perinci::Result::Format;
+use Perinci::Result::Format 0.30;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
 # VERSION
+
+# to avoid sending colored YAML/JSON output
+$Perinci::Result::Format::Enable_Decoration = 0;
 
 our $cleaner = Data::Clean::JSON->new;
 
