@@ -292,6 +292,8 @@ sub call {
 1;
 # ABSTRACT: Parse Riap request from HTTP request
 
+=for Pod::Coverage .*
+
 =head1 SYNOPSIS
 
  # in your app.psgi

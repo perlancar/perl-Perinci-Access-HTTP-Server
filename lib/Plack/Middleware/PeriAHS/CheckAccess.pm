@@ -78,6 +78,8 @@ sub call {
 1;
 # ABSTRACT: Deny access based on some criteria
 
+=for Pod::Coverage .*
+
 =head1 DESCRIPTION
 
 This middleware denies access according to some criterias in

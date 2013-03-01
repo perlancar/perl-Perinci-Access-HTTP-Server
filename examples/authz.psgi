@@ -24,9 +24,9 @@ use warnings;
 
 use Perinci::Access::Base::Patch::PeriAHS;
 use Plack::Builder;
+use Plack::Util::PeriAHS qw(errpage);
 
 use Perinci::Examples;
-use Plack::Util::PeriAHS qw(errpage);
 
 my $app = builder {
     #enable(

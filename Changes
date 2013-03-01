@@ -1,5 +1,24 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.22     2013-03-01 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - Add support for reform (parse_reform argument), currently untested.
+
+         - Add --parse-{path-info,reform,form} options to peri-htserve.
+
+         [BUG FIXES]
+
+         - Only match URI against match_uri if match_uri is set.
+
+         - Several other minor fixes to code/doc.
+
+         [ETC]
+
+         - Add example script (auth.psgi).
+
+
 0.21     2012-08-10 (SHARYANTO)
 
          No functional changes. Update dependencies.

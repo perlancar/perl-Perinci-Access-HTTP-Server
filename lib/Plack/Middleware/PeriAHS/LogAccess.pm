@@ -178,7 +178,8 @@ sub _safe {
 
 1;
 # ABSTRACT: Log request
-__END__
+
+=for Pod::Coverage .*
 
 =head1 SYNOPSIS
 

@@ -10,10 +10,6 @@ our @EXPORT_OK = qw(errpage);
 
 # VERSION
 
-# render envelope response as an error page, either in html or json or text,
-# according to $env->{"riap.request"}{fmt}. Will default to json if fmt is
-# unsupported by it.
-
 use JSON;
 
 my $json = JSON->new->allow_nonref;
@@ -52,3 +48,14 @@ sub errpage {
 1;
 #ABSTRACT: Utility routines
 
+=head1 FUNCTIONS
+
+=head2 errpage($env, $resp)
+
+Render enveloped response $resp (as specified in L<Rinci::function>) as an error
+page PSGI response, either in HTML/JSON/plaintext (according to C<<
+$env->{"riap.request"}{fmt} >>). Will default to JSON if C<fmt> is unsupported.
+
+$env is PSGI environment.
+
+=cut

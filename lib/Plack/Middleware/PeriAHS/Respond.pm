@@ -109,6 +109,8 @@ sub call {
 1;
 # ABSTRACT: Send Riap request to Riap server and send the response to client
 
+=for Pod::Coverage .*
+
 =head1 SYNOPSIS
 
  # in your app.psgi
