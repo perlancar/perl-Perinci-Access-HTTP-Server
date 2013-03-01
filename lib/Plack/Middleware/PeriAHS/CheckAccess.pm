@@ -29,7 +29,7 @@ sub prepare_app {
 }
 
 sub call {
-    $log->tracef("=> PeriAHS::ParseRequest middleware");
+    $log->tracef("=> PeriAHS::CheckAccess middleware");
 
     my ($self, $env) = @_;
 
