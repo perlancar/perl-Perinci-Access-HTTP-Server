@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
-# an example of doing authorization. currently done manually. there's a
-# middleware in-progress to allow creating an ACL configuration for this.
+# an example of doing authorization. currently done manually. there will be a
+# middleware (currently unfinished) to allow creating an ACL configuration for
+# this.
 #
 # the application recognizes two users: 'admin' (pass: 123) and 'user' (pass:
 # 456). 'user' is not allowed to access functions whose name starts with 'gen_'.
