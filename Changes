@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.23     2013-03-01 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Avoid sending colored YAML/JSON output.
+
+
 0.22     2013-03-01 (SHARYANTO)
 
          [ENHANCEMENTS]
