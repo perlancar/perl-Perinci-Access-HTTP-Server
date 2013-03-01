@@ -23,7 +23,7 @@ Revision history for Perinci-Access-HTTP-Server
 
          [ETC]
 
-         - Add example script (auth.psgi).
+         - Add example scripts (auth.psgi, authz.psgi).
 
 
 0.21     2012-08-10 (SHARYANTO)
