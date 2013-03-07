@@ -139,15 +139,15 @@ sub log_access {
         "\n"
     );
 
-    my $uri = $rreq->{uri};
+    my $uri = $rreq->{uri} // "-";
     my $log_line = sprintf(
         $fmt,
         $time,
         $env->{REMOTE_ADDR},
         $server_addr,
         $env->{HTTP_USER} // "-",
-        _safe($rreq->{action}),
-        _safe("$uri" // "-"),
+        _safe($rreq->{action} // "-"),
+        _safe($uri),
         $args_len.($args_partial ? "p" : ""), $args_s,
         $resp_len.($resp_partial ? "p" : ""), $resp_s,
         $subt, $reqt,
