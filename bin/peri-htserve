@@ -9,6 +9,7 @@ use Log::Any qw($log);
 use Perinci::Access::Base::Patch::PeriAHS;
 
 use File::HomeDir;
+use File::Write::Rotate;
 use Module::List qw(list_modules);
 use Module::Load;
 use Perinci::CmdLine ();
@@ -64,7 +65,29 @@ _
             schema => ['str' => {}],
             summary => 'Path for Riap request access log file',
             description => <<'_',
+
 Default is ~/peri-htserve-riap_access.log
+
+_
+        },
+        riap_access_log_size => {
+            schema => ['int' => {}],
+            summary => 'Maximum size for Riap request access log file',
+            description => <<'_',
+
+Default is to use File::Write::Rotate's default (10485760, a.k.a. 10MB).
+
+If size exceeds this, file will be rotated.
+
+_
+        },
+        riap_access_log_histories => {
+            schema => ['int' => {}],
+            summary => 'Number of old Riap request access log files to keep',
+            description => <<'_',
+
+Default is to use File::Write::Rotate's default (10).
+
 _
         },
         server => {
@@ -168,11 +191,23 @@ sub serve {
         gen_meta_for_module(module=>$m, load=>0);
     }
 
+    my $fwr;
+    {
+        my ($dir, $leaf) = $riap_access_log_path =~ m!(.+)/(.+)!;
+        if (!$dir) { $dir = "."; $leaf = $riap_access_log_path }
+        $fwr = File::Write::Rotate->new(
+            dir       => $dir,
+            prefix    => $leaf,
+            size      => $args{riap_access_log_size},
+            histories => $args{riap_access_log_histories},
+        );
+    }
+
     my $app =
         builder {
             enable(
                 "PeriAHS::LogAccess",
-                dest => $riap_access_log_path
+                dest => $fwr,
             );
 
             #enable "PeriAHS::CheckAccess";
