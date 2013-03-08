@@ -159,10 +159,12 @@ sub log_access {
     if (blessed($dest)) {
         if ($dest->can("syswrite")) {
             $dest->syswrite($log_line);
+        } elsif ($dest->can("write")) {
+            $dest->write($log_line);
         } elsif ($dest->can("log")) {
             $dest->log(log=>'info', message=>$log_line);
         } else {
-            die "BUG: dest cannot be syswrite()'d or log()'ed";
+            die "BUG: dest cannot be syswrite()'d or write()'d or log()'ed";
         }
     } else {
         syswrite $self->{dest}, $log_line;
@@ -218,9 +220,11 @@ starting time more accurately.
 =item * dest => STR or OBJ
 
 Either a string (path to log file) or an object which support <syswrite()> (like
-L<IO::Handle>) or C<log> (like L<Log::Dispatch::Output>). If object supports
-C<log>, it will be called like a Log::Dispatch::Output, i.e.
-$obj->log(level=>'info', message=>"Log line ...\n").
+L<IO::Handle>) or C<write()> (like IO::Handle or L<File::Write::Rotate>) or
+C<log> (like L<Log::Dispatch::Output>). If object supports C<log>, it will be
+called like a Log::Dispatch::Output object, i.e. $obj->log(level=>'info',
+message=>"Log line ...\n"). Otherwise it will be called with the log line as the
+single argument.
 
 =item * max_args_len => INT (default 1000)
 
