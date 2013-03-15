@@ -145,7 +145,7 @@ sub log_access {
         $time,
         $env->{REMOTE_ADDR},
         $server_addr,
-        $env->{HTTP_USER} // "-",
+        $env->{REMOTE_USER} // "-",
         _safe($rreq->{action} // "-"),
         _safe($uri),
         $args_len.($args_partial ? "p" : ""), $args_s,

@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.26     2013-03-15 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Log $env->{REMOTE_USER} instead of $env->{HTTP_USER} (typo).
+
+
 0.25     2013-03-08 (SHARYANTO)
 
          - LogAccess middleware: Support logging to objects which have write(),
