@@ -140,16 +140,27 @@ The result will also be put in C<$env->{"riap.response"}>.
 
 =head2 How loglevel and marklog works
 
-If these Riap request keys are turned on, for each response chunk the server
-sends one of:
+If marklog is turned on by Riap request (which is required if client wants to
+receive log messages interspersed with actual Riap response), the server will
+encode each part with:
 
- "L" + <log message> (old, no longer used in 0.27+)
- "R" + <response chunk> (old, no longer used in 0.27+)
+Log message:
+
  "l" + <number-of-bytes> + " " + <log message>
-   example: L20 [trace].............
- "r" + <number-of-bytes> + " " + <response chunk>
+   example: l56 [trace][Thu Apr  4 06:41:09 2013] this is a log message!
 
-so client can separate log messages and actual response.
+Part of Riap response:
+
+ "r" + <number-of-bytes> + " " + <data>
+  example: r9 [200,"OK"]
+
+So the actual HTTP response body might be something like this (can be sent by
+the server in HTTP chunks, so that complete log messages can be displayed before
+the whole Riap response is received):
+
+ l56 [trace][Thu Apr  4 06:41:09 2013] this is a log message!
+ l58 [trace][Thu Apr  4 06:41:09 2013] this is another log msg!
+ r9 [200,"OK"]
 
 Developer note: additional parameter in the future can be in the form of e.g.:
 
