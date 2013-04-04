@@ -271,7 +271,7 @@ sub call {
 
     # defaults
     $rreq->{v}      //= 1.1;
-    $rreq->{action} //= $rreq->{uri} =~ m!/$! ? 'info' : 'call';
+    $rreq->{action} //= $rreq->{uri} =~ m!/$! ? 'list' : 'call';
     $rreq->{fmt}    //= $env->{"periahs.default_fmt"};
 
     # sanity: check required keys
