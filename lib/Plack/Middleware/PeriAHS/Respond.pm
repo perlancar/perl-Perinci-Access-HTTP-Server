@@ -6,7 +6,9 @@ use warnings;
 use Log::Any '$log';
 
 use parent qw(Plack::Middleware);
-use Plack::Util::Accessor qw();
+use Plack::Util::Accessor qw(
+                                add_text_tips
+                        );
 
 use Data::Clean::JSON;
 use Log::Any::Adapter;
@@ -23,12 +25,27 @@ our $cleaner = Data::Clean::JSON->new;
 
 sub prepare_app {
     my $self = shift;
+
+    $self->{add_text_tips} //= 1;
 }
 
 sub format_result {
     my ($self, $rres, $env) = @_;
 
+    my $midpr = $env->{"middleware.PeriAHS.ParseRequest"};
     my $rreq = $env->{"riap.request"};
+
+    # adjust entity uri's against riap_uri_prefix configuration
+    if ($rreq->{action} eq 'list' && $rres->[0] == 200) {
+        for my $e (@{ $rres->[2] }) {
+            for ($rreq->{detail} ? $e->{uri} : $e) {
+                if (s/^pl://) {
+                    s/\A\Q$midpr->{riap_uri_prefix}//;
+                }
+            }
+        }
+    }
+
     my $fmt = $rreq->{fmt} // $env->{'periahs.default_fmt'} // 'json';
 
     my $formatter;
@@ -45,6 +62,48 @@ sub format_result {
 
     if ($fmt =~ /^json/ && defined($env->{"periahs.jsonp_callback"})) {
         $fres = $env->{"periahs.jsonp_callback"}."($fres)";
+    }
+
+    if ($self->{add_text_tips} && $fmt =~ /^text/ && !ref($fres)) {
+        my @tips;
+        my $pf = $midpr->{parse_form};
+        if ($rreq->{action} eq 'list') {
+            my (@f, @p);
+            if ($rreq->{detail}) {
+                @f = grep {$_->{type} eq 'function'} @{$rres->[2]};
+                @p = grep {$_->{type} eq 'package' } @{$rres->[2]};
+            }
+            if (@f) {
+                local $rreq->{uri} = "pl:$midpr->{riap_uri_prefix}".$f[rand(@f)]{uri};
+                push @tips, "* To call a function, try:\n    ".
+                    $midpr->{get_http_request_url}->($midpr, $env, $rreq);
+                if ($pf) {
+                    push @tips, "* Function arguments can be given via GET/POST params or JSON hash in req body";
+                } else {
+                    push @tips, "* Function arguments can be given via JSON hash in request body";
+                }
+                $rreq->{uri} = "pl:$midpr->{riap_uri_prefix}".$f[rand(@f)]{uri};
+                my $url = $midpr->{get_http_request_url}->($midpr, $env, $rreq);
+                push @tips, "* To find out which arguments a function supports, try:\n    ".
+                    ($pf ? "$url?-riap-action=meta" : "curl -H 'x-riap-action: meta' $url");
+            }
+            if (@p) {
+                local $rreq->{uri} = "pl:$midpr->{riap_uri_prefix}".$p[rand(@p)]{uri};
+                push @tips, "* To list the content of a (sub)package, try:\n    ".
+                    $midpr->{get_http_request_url}->($midpr, $env, $rreq);
+            }
+            if ($rreq->{detail} && @{$rres->[2]}) {
+                local $rreq->{uri} = "pl:$midpr->{riap_uri_prefix}".$rres->[2][rand(@{ $rres->[2] })]{uri};
+                my $url = $midpr->{get_http_request_url}->($midpr, $env, $rreq);
+                push @tips, "* To find out all available actions on an entity, try:\n    ".
+                    ($pf ? "$url?-riap-action=actions" : "curl -H 'x-riap-action: actions' $url");
+            }
+            push @tips,"* This server uses Riap protocol for great autodiscoverability, for more info:\n".
+                "    https://metacpan.org/module/Riap";
+        }
+        if (@tips) {
+            $fres .= "\nTips:\n".join("\n", @tips)."\n";
+        }
     }
 
     ($fres, $ct);
@@ -131,6 +190,7 @@ sub call {
 
 This middleware sends Riap request (C<$env->{"riap.request"}>) to Riap client
 (L<Perinci::Access> object, stored in C<$env->{"periahs.riap_client"}> by
+PeriAHS::ParseRequest middleware, thus this middleware requires the
 PeriAHS::ParseRequest middleware), format the result, and send it to client.
 This middleware is the one that sends response to client and should be put as
 the last middleware after all the parsing, authentication, and authorization
@@ -169,7 +229,29 @@ Developer note: additional parameter in the future can be in the form of e.g.:
 
 =head1 CONFIGURATIONS
 
-=over 4
+=over
+
+=item * add_text_tips => BOOL (default: 1)
+
+If set to 1, then when output format is C<text> or C<text-pretty>, additional
+text tips can be added at the end of response. This helps autodiscoverability:
+user can just start using something like:
+
+ % curl http://host/api/
+ ...
+
+ Tips:
+ * To call a function, try:
+     http://host/api/func1
+ * Function arguments can be given via GET/POST parameters or JSON request body
+ * To find out which arguments a function supports, try:
+     http://host/api/func1?-riap-action=meta
+ * To list subpackages, try:
+     http://host/api/SubModule/
+ * To find out all available actions on an entity, try:
+     http://host/api/SubModule?-riap-action=actions
+ * This server uses Riap protocol for great autodiscoverability, for more info:
+     https://metacpan.org/module/Riap
 
 =back
 

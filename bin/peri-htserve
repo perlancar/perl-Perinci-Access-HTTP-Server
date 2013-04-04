@@ -37,7 +37,7 @@ since Perinci::Access::InProcess is used with load=>0.
 
 Modules can be accessed using URL:
 
- http://HOSTNAME:PORT/MODULE/SUBMOD/FUNCTION?ARG1=VAL1&...
+ http://HOSTNAME:PORT/api/MODULE/SUBMOD/FUNCTION?ARG1=VAL1&...
 
 This program is not recommended to be used in production, and there are not many
 configuration options provided. For production, it is recommended that you

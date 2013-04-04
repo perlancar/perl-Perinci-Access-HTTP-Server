@@ -10,6 +10,11 @@ use Perinci::Access::Base::Patch::PeriAHS;
 use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util::Accessor qw(
+                                riap_uri_prefix
+                                server_host
+                                server_port
+                                server_path
+
                                 match_uri
                                 parse_form
                                 parse_reform
@@ -32,8 +37,38 @@ use URI::Escape;
 
 my $json = JSON->new->allow_nonref;
 
+sub get_server_url {
+    my ($self, $env) = @_;
+    my $host = $env->{HTTP_HOST} =~ /(.+):(.+)/ ? $1 : $env->{HTTP_HOST};
+    my $port = $2 ? $2 : ($env->{HTTPS} ? 443 : 80);
+    join("",
+         ($env->{HTTPS} ? "https" : "http"), "://",
+         $host,
+         $port == ($env->{HTTPS} ? 443:80) ? "" : ":$port",
+         $self->{server_path},
+         "/",
+     );
+}
+
 sub prepare_app {
     my $self = shift;
+
+    $self->{riap_uri_prefix}      //= '';
+    $self->{server_host}          //= undef;
+    $self->{server_port}          //= undef;
+    $self->{server_path}          //= '/api';
+    $self->{server_path} =~ s!/\z!!;
+    $self->{get_http_request_url} //= sub {
+        my ($self, $env, $rreq) = @_;
+        my $uri = $rreq->{uri};
+        return unless $uri =~ m!^/! || $uri =~ s/^pl://;
+        $uri =~ s/\A\Q$self->{riap_uri_prefix}\E//;
+        $uri =~ s!^/!!;
+        join("",
+             $self->get_server_url($env),
+             $uri
+         );
+    };
 
     $self->{match_uri}         //= qr/(?<uri>[^?]*)/;
     $self->{accept_yaml}       //= 0;
@@ -55,6 +90,7 @@ sub prepare_app {
             ),
         }
     );
+
 }
 
 sub call {
@@ -156,6 +192,9 @@ sub call {
             for (keys %m) {
                 $rreq->{$_} //= $m{$_};
             }
+        }
+        if (defined $rreq->{uri}) {
+            $rreq->{uri} =~ s!\A\Q$self->{server_path}!!;
         }
     }
 
@@ -271,8 +310,15 @@ sub call {
 
     # defaults
     $rreq->{v}      //= 1.1;
-    $rreq->{action} //= $rreq->{uri} =~ m!/$! ? 'list' : 'call';
     $rreq->{fmt}    //= $env->{"periahs.default_fmt"};
+    if (!$rreq->{action}) {
+        if ($rreq->{uri} =~ m!/$!) {
+            $rreq->{action} = 'list';
+            $rreq->{detail} //= 1;
+        } else {
+            $rreq->{action} = 'call';
+        }
+    }
 
     # sanity: check required keys
     for (qw/uri v action/) {
@@ -280,10 +326,16 @@ sub call {
             $env, [500, "Required Riap request key '$_' has not been defined"]);
     }
 
+    # add uri prefix
+    $rreq->{uri} = "$self->{riap_uri_prefix}$rreq->{uri}";
+
     # normalize into URI object
     $rreq->{uri} = $self->{riap_client}->_normalize_uri($rreq->{uri});
 
     $log->tracef("Riap request: %s", $rreq);
+
+    # expose configuration for other middlewares
+    $env->{"middleware.PeriAHS.ParseRequest"} = $self;
 
     # continue to app
     $self->app->($env);
@@ -387,6 +439,47 @@ error.
 =head1 CONFIGURATIONS
 
 =over 4
+
+=item * riap_uri_prefix => STR (default: '')
+
+If set, Riap request C<uri> will be prefixed by this. For example, you are
+exposing Perl modules at C<YourApp::API::*> (e.g. C<YourApp::API::Module1>. You
+want to access this module via Riap request uri C</Module1/func> instead of
+C</YourApp/API/Module1/func>. In that case, you can set B<riap_uri_prefix> to
+C</YourApp/API/> (notice the ending slash).
+
+=item * server_host => STR
+
+Set server host. Used by B<get_http_request_url>. The default will be retrieved
+from PSGI environment C<HTTP_HOST>.
+
+=item * server_port => STR
+
+Set server port. Used by B<get_http_request_url>. The default will be retrieved
+from PSGI environment C<HTTP_HOST>.
+
+=item * server_path => STR (default: '/api')
+
+Set server URI path. Used by C<get_http_request_url>.
+
+=item * get_http_request_url => CODE (default: code)
+
+Should be set to code that returns HTTP request URL. Code will be passed
+C<($self, $env, $rreq)>, where C<$rreq> is the Riap request hash. The default
+code will return something like:
+
+ http(s)://<SERVER_HOST>:<SERVER_PORT><SERVER_PATH><RIAP_REQUEST_URI>
+
+for example:
+
+ https://cpanlists.org/api/get_list
+
+This code is currently used by the B<PeriAHS::Respond> middleware to print
+text hints.
+
+Usually you do not need to customize this, you can already do some customization
+by setting B<server_path> or B<riap_uri_prefix>, unless you have a more custom
+URL scheme.
 
 =item * match_uri => REGEX or [REGEX, CODE] (default qr/.?/)
 
