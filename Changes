@@ -1,5 +1,19 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.27     2013-04-04 (SHARYANTO)
+
+         [INCOMPATIBLE CHANGES]
+
+         - Under marklog' Riap request turned on, the server now sends log
+           messages and Riap response in a new encoding (now uses 'l'/'r' +
+           <number-of-bytes> + ' ' + <data> instead of just 'L'/'R' + <data>)
+           since the old encoding is unreliable due to HTTP chunks is not 1:1
+           depending on the PSGI server used.
+
+         - (Temporarily?) requires the correct/updated Riap::HTTP client:
+           Perinci::Access::HTTP::Client 0.07.
+
+
 0.26     2013-03-15 (SHARYANTO)
 
          [BUG FIXES]
