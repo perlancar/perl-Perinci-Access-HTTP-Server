@@ -39,8 +39,14 @@ my $json = JSON->new->allow_nonref;
 
 sub get_server_url {
     my ($self, $env) = @_;
-    my $host = $env->{HTTP_HOST} =~ /(.+):(.+)/ ? $1 : $env->{HTTP_HOST};
-    my $port = $2 ? $2 : ($env->{HTTPS} ? 443 : 80);
+    my $host = $self->{server_host};
+    unless (defined $host) {
+        $host = $env->{HTTP_HOST} =~ /(.+):(.+)/ ? $1 : $env->{HTTP_HOST};
+    }
+    my $port = $self->{server_port};
+    unless (defined $port) {
+        $port = $2 ? $2 : ($env->{HTTPS} ? 443 : 80);
+    }
     join("",
          ($env->{HTTPS} ? "https" : "http"), "://",
          $host,
