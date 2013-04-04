@@ -80,12 +80,14 @@ sub call {
                 min_level => $str_levels{$loglvl} // 'warning',
                 logging_cb => sub {
                     my ($method, $self, $format, @params) = @_;
+                    my $msg0 = join(
+                        "",
+                        "[$method][", scalar(localtime), "] $format\n",
+                    );
                     my $msg = join(
                         "",
-                        $marklog ? "L" : "",
-                        "[$method]",
-                        "[", scalar(localtime), "] ",
-                        $format, "\n");
+                        $marklog ? "l" . length($msg0) . " " : "",
+                        $msg0);
                     $writer->write($msg);
                 },
             );
@@ -101,7 +103,8 @@ sub call {
         my ($fres, $ct) = $self->format_result($rres, $env);
 
         if ($writer) {
-            $writer->write($marklog ? "R$fres" : $fres);
+            $writer->write($marklog ?
+                               "r" . length($fres) . " " . $fres : $fres);
             $writer->close;
         } else {
             $respond->([200, ["Content-Type" => $ct], [$fres]]);
@@ -134,6 +137,23 @@ the last middleware after all the parsing, authentication, and authorization
 middlewares.
 
 The result will also be put in C<$env->{"riap.response"}>.
+
+=head2 How loglevel and marklog works
+
+If these Riap request keys are turned on, for each response chunk the server
+sends one of:
+
+ "L" + <log message> (old, no longer used in 0.27+)
+ "R" + <response chunk> (old, no longer used in 0.27+)
+ "l" + <number-of-bytes> + " " + <log message>
+   example: L20 [trace].............
+ "r" + <number-of-bytes> + " " + <response chunk>
+
+so client can separate log messages and actual response.
+
+Developer note: additional parameter in the future can be in the form of e.g.:
+
+ "l" + <number-of-bytes> + ("," + <additional-param> )* + " "
 
 
 =head1 CONFIGURATIONS
