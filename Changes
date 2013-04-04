@@ -1,5 +1,19 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.28     2013-04-04 (SHARYANTO)
+
+         This release contains enhancements for self-discoverability, especially
+         for command-line browser (e.g. curl).
+
+         [ENHANCEMENTS]
+
+         - Default action for package entity is now 'list' instead of 'call'.
+
+         - Add text tips on text responses (along with new ParseRequest
+           configurations: riap_uri_prefix, server_{host,port,path},
+           get_http_request_url).
+
+
 0.27     2013-04-04 (SHARYANTO)
 
          [INCOMPATIBLE CHANGES]
