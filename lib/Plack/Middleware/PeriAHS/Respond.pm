@@ -10,9 +10,8 @@ use Plack::Util::Accessor qw(
                                 add_text_tips
                         );
 
-use Data::Clean::JSON;
 use Log::Any::Adapter;
-use Perinci::Result::Format 0.30;
+use Perinci::Result::Format 0.31;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
@@ -21,7 +20,8 @@ use Time::HiRes qw(gettimeofday);
 # to avoid sending colored YAML/JSON output
 $Perinci::Result::Format::Enable_Decoration = 0;
 
-our $cleaner = Data::Clean::JSON->new;
+# to allow in-place cleansing of data when formatter can't handle data
+$Perinci::Result::Format::Enable_Cleansing = 1;
 
 sub prepare_app {
     my $self = shift;
@@ -155,8 +155,6 @@ sub call {
             $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
         }
         $env->{'periahs.finish_action_time'} = [gettimeofday];
-
-        $cleaner->clean_in_place($rres);
 
         $env->{'riap.response'} = $rres;
         my ($fres, $ct) = $self->format_result($rres, $env);
