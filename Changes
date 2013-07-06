@@ -1,5 +1,18 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.29     2013-07-06 (SHARYANTO)
+
+         [ARCH]
+
+         - Push data cleansing one layer down to Perinci::Result::Format (see
+           that module for more details).
+
+         [ENHANCEMENTS]
+
+         - Turn off Text::ANSITable stuffs that make text-pretty format looks
+           nice in terminals but ugly in browser (UNICODE, COLOR, BOX_CHARS)
+
+
 0.28     2013-04-04 (SHARYANTO)
 
          This release contains enhancements for self-discoverability, especially
