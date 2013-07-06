@@ -32,6 +32,12 @@ sub prepare_app {
 sub format_result {
     my ($self, $rres, $env) = @_;
 
+    # turn off Text::ANSITable stuffs that make things look nice in terminals
+    # but ugly in browser
+    local $ENV{UNICODE}   = 0;
+    local $ENV{COLOR}     = 0;
+    local $ENV{BOX_CHARS} = 0;
+
     my $midpr = $env->{"middleware.PeriAHS.ParseRequest"};
     my $rreq = $env->{"riap.request"};
 
