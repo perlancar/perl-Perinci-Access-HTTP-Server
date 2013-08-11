@@ -39,9 +39,9 @@ Modules can be accessed using URL:
 
  http://HOSTNAME:PORT/api/MODULE/SUBMOD/FUNCTION?ARG1=VAL1&...
 
-This program is not recommended to be used in production, and there are not many
-configuration options provided. For production, it is recommended that you
-construct your own PSGI application and compose the
+This program is mainly for testing, not recommended to be used in production,
+and there are not many configuration options provided. For production, it is
+recommended that you construct your own PSGI application and compose the
 Plack::Middleware::PeriAHS::* middlewares directly.
 
 _
@@ -157,6 +157,14 @@ _
             schema => ['bool'],
             summary => 'Passed to Plack::Middleware::PeriAHS::ParseRequest',
         },
+        user => {
+            schema => ['str*'],
+            summary => 'Protect with HTTP authentication, specify username',
+        },
+        password => {
+            schema => ['str*'],
+            summary => 'Protect with HTTP authentication, specify password',
+        },
     },
     '_perinci.sub.wrapper.validate_args' => 0,
 };
@@ -203,24 +211,39 @@ sub serve {
         );
     }
 
-    my $app =
-        builder {
-            enable(
-                "PeriAHS::LogAccess",
-                dest => $fwr,
-            );
+    my $app = builder {
+        enable(
+            "PeriAHS::LogAccess",
+            dest => $fwr,
+        );
 
-            #enable "PeriAHS::CheckAccess";
+        #enable "PeriAHS::CheckAccess";
 
-            enable(
-                "PeriAHS::ParseRequest",
-                parse_path_info => $args{parse_path_info},
-                parse_form      => $args{parse_form},
-                parse_reform    => $args{parse_reform},
-            );
+        enable(
+            "PeriAHS::ParseRequest",
+            parse_path_info => $args{parse_path_info},
+            parse_form      => $args{parse_form},
+            parse_reform    => $args{parse_reform},
+        );
 
-            enable "PeriAHS::Respond";
-        };
+        enable_if(
+            sub {
+                defined($args{user}) && defined($args{password});
+            },
+            "Auth::Basic",
+            authenticator => sub {
+                my ($user, $pass, $env) = @_;
+
+                if ($user eq $args{user} && $pass eq $args{password}) {
+                    #$env->{"REMOTE_USER"} = $user; # isn't this already done by webserver?
+                    return 1;
+                }
+                return 0;
+            }
+        );
+
+        enable "PeriAHS::Respond";
+    };
 
     my @argv;
     push @argv, "-s", $server;
