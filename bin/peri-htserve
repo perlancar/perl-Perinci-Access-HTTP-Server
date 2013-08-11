@@ -219,27 +219,26 @@ sub serve {
 
         #enable "PeriAHS::CheckAccess";
 
+        if (defined($args{user}) && defined($args{password})) {
+            enable(
+                "Auth::Basic",
+                authenticator => sub {
+                    my ($user, $pass, $env) = @_;
+
+                    if ($user eq $args{user} && $pass eq $args{password}) {
+                        #$env->{"REMOTE_USER"} = $user; # isn't this already done by webserver?
+                        return 1;
+                    }
+                    return 0;
+                }
+            );
+        }
+
         enable(
             "PeriAHS::ParseRequest",
             parse_path_info => $args{parse_path_info},
             parse_form      => $args{parse_form},
             parse_reform    => $args{parse_reform},
-        );
-
-        enable_if(
-            sub {
-                defined($args{user}) && defined($args{password});
-            },
-            "Auth::Basic",
-            authenticator => sub {
-                my ($user, $pass, $env) = @_;
-
-                if ($user eq $args{user} && $pass eq $args{password}) {
-                    #$env->{"REMOTE_USER"} = $user; # isn't this already done by webserver?
-                    return 1;
-                }
-                return 0;
-            }
         );
 
         enable "PeriAHS::Respond";
