@@ -204,7 +204,7 @@ sub call {
         }
     }
 
-    # get ss request key from form variables (optional)
+    # get riap request key from form variables (optional)
     if ($self->{parse_form}) {
         my $form = $preq->parameters;
         $env->{'periahs._form_cache'} = $form;
