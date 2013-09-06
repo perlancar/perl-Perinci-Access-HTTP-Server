@@ -1,5 +1,17 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.30     2013-09-06 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - ParseRequest: Add deconfuse_php_clients & php_clients_ua_re to handle
+           PHP clients which often send {} instead of [] (or vice versa) due to
+           both being Array() in PHP.
+
+         - peri-htserve: Add --user and --password option to test giving HTTP
+           auth (not yet working? user/pass entered -> unauthorized)
+
+
 0.29     2013-07-06 (SHARYANTO)
 
          [ARCH]
