@@ -12,6 +12,17 @@ $SPEC{add2} = {
 };
 sub add2 { my %args = @_; [200, "OK", $args{a} + $args{b}] }
 
+# to test deconfuse_php_clients
+$SPEC{f1} = {
+    v=>1.1,
+    args=>{
+        a=>{schema=>'array'},
+        b=>{},
+        h=>{schema=>'hash'},
+    },
+};
+sub f1 { [200] }
+
 package main;
 
 use 5.010;
@@ -29,7 +40,7 @@ test_ParseRequest_middleware(
         {
             name      => 'default Riap request keys',
             args      => [GET => '/api/'],
-            rrreq     => {v=>1.1, action=>'call', uri=>'pl:/', fmt=>'json'},
+            rreq      => {v=>1.1, action=>'call', uri=>'pl:/', fmt=>'json'},
         },
         {
             name      => 'default fmt = text, errpage in text',
@@ -240,6 +251,125 @@ test_ParseRequest_middleware(
 
 # XXX test parse args + request keys from path info? (turned off by default)
 
+subtest "deconfuse_php_clients & php_clients_ua_re" => sub {
+    my $uri = "/Test/ParseRequest/f1";
+    my %cr = (v=>1.1, action=>'call', fmt=>'json', ua=>'Phinci',
+              uri=>"pl:$uri"); # common request keys
+    test_ParseRequest_middleware(
+        name => "disabled",
+        args => {deconfuse_php_clients=>0},
+        requests => [
+            {
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '[]',
+                ]],
+                rreq      => undef,
+                ct        => 'application/json',
+                content   => qr/args.+must.+hash/i,
+            },
+        ],
+    );
+    test_ParseRequest_middleware(
+        name => "php_clients_ua_re doesn't match",
+        args => {deconfuse_php_clients=>1, php_clients_ua_re=>'foo'},
+        requests => [
+            {
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '[]',
+                ]],
+                rreq      => undef,
+                ct        => 'application/json',
+                content   => qr/args.+must.+hash/i,
+            },
+        ],
+    );
+    test_ParseRequest_middleware(
+        name => "enabled",
+        args => {},
+        requests => [
+            {
+                name      => 'args [] converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '[]',
+                ]],
+                rreq      => {%cr, args=>{}},
+            },
+            {
+                name      => 'args [1] not converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '[1]',
+                ]],
+                rreq      => undef,
+                ct        => 'application/json',
+                content   => qr/args.+must.+hash/i,
+            },
+
+            {
+                name      => 'arg a {} converted to []',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"a":{}}',
+                ]],
+                rreq      => {%cr, args=>{a=>[]}},
+            },
+            {
+                name      => 'arg a 1 not converted to []',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"a":1}',
+                ]],
+                rreq      => {%cr, args=>{a=>1}},
+            },
+
+            {
+                name      => 'arg h [] converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"h":[]}',
+                ]],
+                rreq      => {%cr, args=>{h=>{}}},
+            },
+            {
+                name      => 'arg h 1 not converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"h":1}',
+                ]],
+                rreq      => {%cr, args=>{h=>1}},
+            },
+
+            {
+                name      => 'arg b [] not converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"b":[]}',
+                ]],
+                rreq      => {%cr, args=>{b=>[]}},
+            },
+            {
+                name      => 'arg b {} not converted to []',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"b":{}}',
+                ]],
+                rreq      => {%cr, args=>{b=>{}}},
+            },
+            {
+                name      => 'arg b 1 not converted to {}',
+                args      => [GET => $uri, [
+                    "x-riap-ua" => "Phinci",
+                    "x-riap-args-j-" => '{"b":1}',
+                ]],
+                rreq      => {%cr, args=>{b=>1}},
+            },
+        ],
+    );
+};
+
 done_testing;
 
 sub test_ParseRequest_middleware {
@@ -280,7 +410,7 @@ sub test_ParseRequest_middleware {
                     is($res->code, $test->{status} // 200, "status")
                         or diag $res->as_string;
 
-                    if (exists $test->{rr}) {
+                    if (exists $test->{rreq}) {
                         if ($rreq) {
                             $rreq->{uri} = "$rreq->{uri}"; # to ease comparison
                         }
