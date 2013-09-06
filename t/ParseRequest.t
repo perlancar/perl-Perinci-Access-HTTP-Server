@@ -38,9 +38,14 @@ test_ParseRequest_middleware(
     args => {match_uri=>qr!^/api(?<uri>/[^?]*)!},
     requests => [
         {
-            name      => 'default Riap request keys',
+            name      => 'default Riap request keys (for function)',
+            args      => [GET => '/api/foo'],
+            rreq      => {v=>1.1, action=>'call', uri=>'pl:/foo', fmt=>'json'},
+        },
+        {
+            name      => 'default Riap request keys (for package)',
             args      => [GET => '/api/'],
-            rreq      => {v=>1.1, action=>'call', uri=>'pl:/', fmt=>'json'},
+            rreq      => {v=>1.1, action=>'list', detail=>1, uri=>'pl:/', fmt=>'json'},
         },
         {
             name      => 'default fmt = text, errpage in text',
@@ -53,9 +58,9 @@ test_ParseRequest_middleware(
 
         {
             name      => 'request keys from X-Riap-* header',
-            args      => [GET => '/api/', ['X-Riap-Foo' => 42,
-                                           'X-Riap-Bar-Baz-j-'=>'[2]']],
-            rreq      => {v=>1.1, action=>'call', uri=>'pl:/', fmt=>'json',
+            args      => [GET => '/api/foo', ['X-Riap-Foo' => 42,
+                                              'X-Riap-Bar-Baz-j-'=>'[2]']],
+            rreq      => {v=>1.1, action=>'call', uri=>'pl:/foo', fmt=>'json',
                           foo=>42, bar_baz=>[2]},
         },
         {
@@ -109,9 +114,9 @@ test_ParseRequest_middleware(
         },
         {
             name      => 'match_uri does not override X-Riap-URI header',
-            args      => [GET => '/api/M1/',
-                          ['X-Riap-URI'=>'/M0/']],
-            rreq      => {v=>1.1, action=>'call', uri=>'pl:/M0/',
+            args      => [GET => '/api/F1',
+                          ['X-Riap-URI'=>'/F0']],
+            rreq      => {v=>1.1, action=>'call', uri=>'pl:/F0',
                           fmt=>'json'},
         },
         {
@@ -179,7 +184,7 @@ test_ParseRequest_middleware(
         {
             name      => 'mod',
             args      => [GET => '/ga/Foo::Bar'],
-            rreq      => {v=>1.1, action=>'call', fmt=>'json',
+            rreq      => {v=>1.1, action=>'list', detail=>1, fmt=>'json',
                           uri=>'pl:/My/Foo/Bar/'},
         },
         {
