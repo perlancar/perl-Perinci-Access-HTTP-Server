@@ -6,7 +6,9 @@ Revision history for Perinci-Access-HTTP-Server
 
          - ParseRequest: Add deconfuse_php_clients & php_clients_ua_re to handle
            PHP clients which often send {} instead of [] (or vice versa) due to
-           both being Array() in PHP.
+           both being Array() in PHP. The server can now convert argument value
+           [] to {} if the function expects a hash, or {} to [] if the function
+           expects an array.
 
          - peri-htserve: Add --user and --password option to test giving HTTP
            auth (not yet working? user/pass entered -> unauthorized)
