@@ -386,8 +386,7 @@ sub call {
     # add uri prefix
     $rreq->{uri} = "$self->{riap_uri_prefix}$rreq->{uri}";
 
-    # normalize into URI object
-    $rreq->{uri} = $self->{riap_client}->_normalize_uri($rreq->{uri});
+    # split, for convenience of other middlewares that might use it
 
     $log->tracef("Riap request: %s", $rreq);
 

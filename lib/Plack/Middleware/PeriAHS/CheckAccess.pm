@@ -17,7 +17,7 @@ use Plack::Util::Accessor qw(
                         );
 use Plack::Util::PeriAHS qw(errpage);
 use SHARYANTO::Array::Util qw(match_array_or_regex);
-use URI;
+use URI::Split qw(uri_split);
 
 # VERSION
 
@@ -41,24 +41,24 @@ sub call {
             if $rreq->{loglevel};
     }
 
+    my ($sch, $auth, $path) = uri_split($uri);
+    $sch //= "pl";
     if ($self->{allow_uri_scheme}) {
-        my $sch = $uri->scheme;
         return errpage($env, [403, "Riap URI scheme not allowed (not in list)"])
             unless match_array_or_regex($sch, $self->{allow_uri_scheme});
     }
     if ($self->{deny_uri_scheme}) {
-        my $sch = $uri->scheme;
         return errpage($env, [403, "Riap URI scheme not allowed (deny list)"])
             if match_array_or_regex($sch, $self->{deny_uri_scheme});
     }
 
     if ($self->{allow_uri}) {
         return errpage($env, [403, "Riap URI not allowed (not in list)"])
-            unless match_array_or_regex("$uri", $self->{allow_uri});
+            unless match_array_or_regex($uri, $self->{allow_uri});
     }
     if ($self->{deny_uri}) {
         return errpage($env, [403, "Riap URI not allowed (deny list)"])
-            if match_array_or_regex("$uri", $self->{deny_uri});
+            if match_array_or_regex($uri, $self->{deny_uri});
     }
 
     if ($self->{allow_action}) {
