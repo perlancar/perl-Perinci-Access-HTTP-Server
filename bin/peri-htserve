@@ -33,7 +33,7 @@ metadata using Perinci::Sub::Gen::ForModule. After that, a PSGI application will
 be run with the Gepok or Starman PSGI server. The PSGI application serves
 requests for function calls (or other kinds of Riap request) over HTTP. Perl
 modules not specified in the command-line arguments will not be accessible,
-since Perinci::Access::InProcess is used with load=>0.
+since Perinci::Access::Perl is used with load=>0.
 
 Modules can be accessed using URL:
 

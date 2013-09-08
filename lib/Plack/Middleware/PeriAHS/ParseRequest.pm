@@ -31,7 +31,8 @@ use Plack::Util::Accessor qw(
 
 use JSON;
 use Perinci::Access;
-use Perinci::Access::InProcess;
+use Perinci::Access::Perl;
+use Perinci::Access::Schemeless;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
 use URI::Escape;
@@ -89,7 +90,15 @@ sub prepare_app {
 
     $self->{riap_client}       //= Perinci::Access->new(
         handlers => {
-            pl => Perinci::Access::InProcess->new(
+            '' => Perinci::Access::Schemeless->new(
+                load => 0,
+                extra_wrapper_convert => {
+                    #timeout => 300,
+                },
+                use_tx            => $self->{use_tx},
+                custom_tx_manager => $self->{custom_tx_manager},
+            ),
+            pl => Perinci::Access::Perl->new(
                 load => 0,
                 extra_wrapper_convert => {
                     #timeout => 300,
@@ -624,11 +633,13 @@ requests. You can supply a custom object here.
 
 =item * use_tx => BOOL (default 0)
 
-Will be passed to L<Perinci::Access::InProcess> constructor.
+Will be passed to L<Perinci::Access::Perl> and L<Perinci::Access::Schemeless>
+constructor.
 
 =item * custom_tx_manager => STR|CODE
 
-Will be passed to L<Perinci::Access::InProcess> constructor.
+Will be passed to L<Perinci::Access::Perl> and L<Perinci::Access::Schemeless>
+constructor.
 
 =item * php_clients_ua_re => REGEX (default: qr(Phinci|/php|php/)i)
 
