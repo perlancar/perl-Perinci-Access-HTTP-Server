@@ -28,7 +28,7 @@ test_CheckAccess_middleware(
 
 test_CheckAccess_middleware(
     name => "allow_uri, deny_uri",
-    args => {allow_uri=>['pl:/Foo/a', 'pl:/Foo/x'], deny_uri=>qr/x/},
+    args => {allow_uri=>['/Foo/a', '/Foo/x'], deny_uri=>qr/x/},
     requests => [
         {args => [GET => '/Foo/a?x=1'], allowed => 1},
         {args => [GET => '/Foo/x'],     allowed => 0},
