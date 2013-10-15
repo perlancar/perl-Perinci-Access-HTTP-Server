@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.32     2013-10-15 (SHARYANTO)
+
+         - Use Data::Clean::FromJSON because JSON creates JSON::{PP,XS}::Boolean
+           objects that currently trip Data::Sah-generated validator code.
+
+
 0.31     2013-09-16 (SHARYANTO)
 
          - No functional changes. Replace Perinci::Access::InProcess with ::Perl
