@@ -29,7 +29,6 @@ use Plack::Util::Accessor qw(
                                 deconfuse_php_clients
                         );
 
-use JSON;
 use Perinci::Access;
 use Perinci::Access::Perl;
 use Perinci::Access::Schemeless;
@@ -39,7 +38,39 @@ use URI::Escape;
 
 # VERSION
 
-my $json = JSON->new->allow_nonref;
+# retun ($success?, $errmsg, $res)
+sub __parse_json {
+    require Data::Clean::FromJSON;
+    require JSON;
+
+    my $str = shift;
+
+    state $json = JSON->new->allow_nonref;
+
+    # to rid of those JSON::XS::Boolean objects which currently choke
+    # Data::Sah-generated validator code. in the future Data::Sah can be
+    # modified to handle those, or we use a fork of JSON::XS which doesn't
+    # produce those in the first place (probably only when performance is
+    # critical).
+    state $cleanser = Data::Clean::FromJSON->new;
+
+    my $res;
+    eval { $res = $json->decode($str); $cleanser->clean_in_place($res) };
+    my $e = $@;
+    return (!$e, $e, $res);
+}
+
+sub __parse_yaml {
+    require YAML::Syck;
+
+    my $str = shift;
+
+    local $YAML::Syck::ImplicitTyping = 1;
+    my $res;
+    eval { $res = YAML::Syck::Load($str) };
+    my $e = $@;
+    return (!$e, $e, $res);
+}
 
 sub get_server_url {
     my ($self, $env) = @_;
@@ -144,6 +175,8 @@ sub call {
     }
     $env->{"periahs.default_fmt"} = $fmt;
 
+    my ($decsuc, $decerr); # json/yaml decoding success status & error message
+
     # parse Riap request keys from HTTP headers (required by spec)
     for my $k0 (keys %$env) {
         next unless $k0 =~ /\AHTTP_X_RIAP_(.+?)(_J_)?\z/;
@@ -153,9 +186,10 @@ sub call {
         #$k =~ /\A\w+\z/ or return errpage(
         #    $env, [400, "Invalid Riap request key syntax in HTTP header $k0"]);
         if ($encj) {
-            eval { $v = $json->decode($v) };
-            return errpage($env, [400, "Invalid JSON in HTTP header $k0"])
-                if $@;
+            ($decsuc, $decerr, $v) = __parse_json($v);
+            return errpage(
+                $env, [400, "Invalid JSON in HTTP header $k0: $decerr"])
+                if !$decsuc;
         }
         $rreq->{$k} = $v;
     }
@@ -173,9 +207,10 @@ sub call {
                     $ct eq 'text/yaml' && $self->{accept_yaml};
             if ($ct eq 'application/json') {
                 #$log->trace('Request body is JSON');
-                eval { $rreq->{args} = $json->decode($preq->content) };
+                ($decsuc,$decerr, $rreq->{args}) = __parse_json($preq->content);
                 return errpage(
-                    $env, [400, "Invalid JSON in request body"]) if $@;
+                    $env, [400, "Invalid JSON in request body: $decerr"])
+                    if !$decsuc;
             #} elsif ($ct eq 'application/vnd.php.serialized') {
             #    #$log->trace('Request body is PHP serialized');
             #    request PHP::Serialization;
@@ -184,10 +219,10 @@ sub call {
             #        $env, [400, "Invalid PHP serialized data in request body"])
             #        if $@;
             } elsif ($ct eq 'text/yaml') {
-                require YAML::Syck;
-                eval { $rreq->{args} = YAML::Syck::Load($preq->content) };
+                ($decsuc,$decerr, $rreq->{args}) = __parse_yaml($preq->content);
                 return errpage(
-                    $env, [400, "Invalid YAML in request body"]) if $@;
+                    $env, [400, "Invalid YAML in request body: $decerr"])
+                    if !$decsuc;
             }
         }
     }
@@ -248,19 +283,19 @@ sub call {
             if ($k =~ /(.+):j$/) {
                 $k = $1;
                 #$log->trace("CGI parameter $k (json)=$v");
-                eval { $v = $json->decode($v) };
+                ($decsuc, $decerr, $v) = __parse_json($v);
                 return errpage(
-                    $env, [400, "Invalid JSON in query parameter $k: $@"])
-                    if $@;
+                    $env, [400, "Invalid JSON in query parameter $k: $decerr"])
+                    if !$decsuc;
             } elsif ($k =~ /(.+):y$/) {
                 $k = $1;
                 #$log->trace("CGI parameter $k (yaml)=$v");
                 return errpage($env, [400, "YAML form variable unacceptable"])
                     unless $self->{accept_yaml};
-                require YAML::Syck;
-                eval { $v = YAML::Syck::Load($v) };
+                ($decsuc, $decerr, $v) = __parse_yaml($v);
                 return errpage(
-                    $env, [400, "Invalid YAML in query parameter $k"]) if $@;
+                    $env, [400, "Invalid YAML in query parameter $k: $decerr"])
+                    if !$decsuc;
             #} elsif ($k =~ /(.+):p$/) {
             #    $k = $1;
             #    #$log->trace("PHP serialized parameter $k (php)=$v");
