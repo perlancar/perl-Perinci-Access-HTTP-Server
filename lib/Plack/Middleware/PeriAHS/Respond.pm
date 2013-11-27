@@ -42,13 +42,9 @@ sub format_result {
     my $rreq = $env->{"riap.request"};
 
     # adjust entity uri's against riap_uri_prefix configuration
-    if ($rreq->{action} eq 'list' && $rres->[0] == 200) {
-        for my $e (@{ $rres->[2] }) {
-            for ($rreq->{detail} ? $e->{uri} : $e) {
-                if (s/^pl://) {
-                    s/\A\Q$midpr->{riap_uri_prefix}//;
-                }
-            }
+    if ($rreq->{action} eq 'info' && $rres->[0] == 200) {
+        for ($rres->[2]{uri}) {
+            s/\A\Q$midpr->{riap_uri_prefix}//;
         }
     }
 
