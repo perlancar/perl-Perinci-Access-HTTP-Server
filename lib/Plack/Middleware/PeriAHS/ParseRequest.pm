@@ -34,6 +34,7 @@ use Perinci::Access::Perl;
 use Perinci::Access::Schemeless;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
+use Scalar::Util qw(blessed);
 use URI::Escape;
 
 # VERSION
@@ -142,12 +143,13 @@ sub prepare_app {
 
     $self->{php_clients_ua_re} //= qr(Phinci|/php|php/)i;
     $self->{deconfuse_php_clients} //= 1;
+
+    $log->tracef("Prepared PeriAHS::ParseRequest middleware: %s", $self);
 }
 
 sub call {
-    $log->tracef("=> PeriAHS::ParseRequest middleware");
-
     my ($self, $env) = @_;
+    $log->tracef("=> PeriAHS::ParseRequest middleware");
 
     my $rreq = $env->{"riap.request"} //= {};
 

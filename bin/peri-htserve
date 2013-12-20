@@ -12,10 +12,11 @@ use File::HomeDir;
 use File::Write::Rotate;
 use Module::List qw(list_modules);
 use Module::Load;
+use Perinci::Access::Schemeless;
 use Perinci::CmdLine ();
+use Perinci::Gen::ForModule qw(gen_meta_for_module);
 use Plack::Builder;
 use Plack::Runner;
-use Perinci::Gen::ForModule qw(gen_meta_for_module);
 
 # VERSION
 
@@ -51,6 +52,7 @@ _
                 of => 'str*',
                 min_len => 1,
             }],
+            req => 1,
             pos => 0,
             greedy => 1,
             summary => 'List of modules to load',
@@ -166,12 +168,13 @@ _
             summary => 'Protect with HTTP authentication, specify password',
         },
     },
-    '_perinci.sub.wrapper.validate_args' => 0,
+    #'_perinci.sub.wrapper.validate_args' => 0,
 };
 sub serve {
-    my %args = @_; # VALIDATE_ARGS
+    my %args = @_; # VXALIDATE_ARGS
 
     my $server = $args{server};
+    #$log->tracef("TMP: modules: %s", $args{modules});
     $log->infof("Starting server (using %s) ...", $server);
 
     my $riap_access_log_path = $args{riap_access_log_path} //
@@ -211,6 +214,14 @@ sub serve {
         );
     }
 
+    # let's only allow access to perl modules (and not other schemes like http).
+    # let's not dynamically load modules except the ones explicitly specified
+    # and loaded above. let's only allow seeing the specified modules.
+    my $pa = Perinci::Access::Schemeless->new(
+        load => 0,
+        allow_paths => [map {s!::!/!g; "/$_"} @modules],
+    );
+
     my $app = builder {
         enable(
             "PeriAHS::LogAccess",
@@ -239,6 +250,7 @@ sub serve {
             parse_path_info => $args{parse_path_info},
             parse_form      => $args{parse_form},
             parse_reform    => $args{parse_reform},
+            riap_client     => $pa,
         );
 
         enable "PeriAHS::Respond";
