@@ -1,5 +1,17 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.35     2013-12-20 (SHARYANTO)
+
+	 - For security, default Riap client used changed from Perinci::Access
+           to Perinci::Access::Schemeless so the Riap server cannot be used to
+           fetch remote URI's.
+
+         - bin/peri-htserve: Set 'allow_paths' of Riap client so users don't see
+           paths of other modules not specified in cmdline argument.
+
+         - Add example scripts: perl-any.psgi and perl-some.psgi.
+
+
 0.34     2013-11-27 (SHARYANTO)
 
 	 - No functional changes. Adjust to newer Perinci::Access::Perl 0.55+.

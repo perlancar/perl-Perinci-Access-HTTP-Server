@@ -189,7 +189,7 @@ sub call {
 =head1 DESCRIPTION
 
 This middleware sends Riap request (C<$env->{"riap.request"}>) to Riap client
-(L<Perinci::Access> object, stored in C<$env->{"periahs.riap_client"}> by
+(C<Perinci::Access::*> object, stored in C<$env->{"periahs.riap_client"}> by
 PeriAHS::ParseRequest middleware, thus this middleware requires the
 PeriAHS::ParseRequest middleware), format the result, and send it to client.
 This middleware is the one that sends response to client and should be put as

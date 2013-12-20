@@ -29,7 +29,6 @@ use Plack::Util::Accessor qw(
                                 deconfuse_php_clients
                         );
 
-use Perinci::Access;
 use Perinci::Access::Schemeless;
 use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
