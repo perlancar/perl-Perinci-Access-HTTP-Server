@@ -4,12 +4,14 @@
 # PERL_MODULES) and this webapp will let you access those modules via Riap::HTTP
 # protocol. how to use:
 #
-#  % plackup -Ilib examples/perl-some.psgi
+#  % PERL_MODULES="Perinci::Examples Calendar::Indonesia::Holiday" plackup -Ilib examples/perl-some.psgi
 #
 # then access, e.g. using:
 #
 #  % curl http://localhost:5000/Perinci/Examples/gen_array?len=5
-#  % perl -ML -E'$pa = Perinci::Access->new; $res = $pa->request(call => "/Perinci/Examples/gen_array", {args=>{len=>5}});'
+#  % perl -ML -E'$pa = Perinci::Access->new; $res = $pa->request(call => "/Calendar/Indonesia/Holiday/list_id_holidays", {args=>{year=>2014}});'
+#
+# Note that on the second example, you need the 'L' module.
 
 use 5.010;
 use strict;
