@@ -173,6 +173,14 @@ _
             schema => ['str*'],
             summary => 'Protect with HTTP authentication, specify password',
         },
+        enable_loglevel => {
+            schema  => ['bool', default=>1],
+            summary => 'Can be used to test server with no support for loglevel',
+        },
+        enable_marklog => {
+            schema  => ['bool', default=>1],
+            summary => 'Can be used to test server with no support for marklog',
+        },
     },
     #'_perinci.sub.wrapper.validate_args' => 0,
 };
@@ -260,7 +268,11 @@ sub serve {
             riap_client     => $pa,
         );
 
-        enable "PeriAHS::Respond";
+        enable (
+            "PeriAHS::Respond",
+            enable_loglevel => $args{enable_loglevel},
+            enable_marklog  => $args{enable_marklog},
+        );
     };
 
     my @argv;
