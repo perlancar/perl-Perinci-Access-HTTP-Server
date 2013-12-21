@@ -8,6 +8,8 @@ use Log::Any '$log';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
                                 add_text_tips
+                                enable_marklog
+                                enable_loglevel
                         );
 
 use Log::Any::Adapter;
@@ -26,7 +28,9 @@ $Perinci::Result::Format::Enable_Cleansing = 1;
 sub prepare_app {
     my $self = shift;
 
-    $self->{add_text_tips} //= 1;
+    $self->{add_text_tips}   //= 1;
+    $self->{enable_loglevel} //= 1;
+    $self->{enable_marklog}  //= 1;
 }
 
 sub format_result {
@@ -129,12 +133,15 @@ sub call {
         my $respond = shift;
 
         my $writer;
-        my $loglvl  = $rreq->{'loglevel'} // 0;
-        my $marklog = $rreq->{'marklog'};
+        my $loglvl  = $self->{enable_loglevel} ? ($rreq->{'loglevel'} // 0) : 0;
+        my $marklog = $self->{enable_marklog}  ? $rreq->{'marklog'} : 0;
         my $rres; #  short for riap response
         $env->{'periahs.start_action_time'} = [gettimeofday];
         if ($loglvl > 0) {
-            $writer = $respond->([200, ["Content-Type" => "text/plain"]]);
+            $writer = $respond->([
+                200, ["Content-Type" => "text/plain",
+                      "X-Riap-V" => "1.1.21",
+                      "X-Riap-Logging" => ($marklog ? "marked":"enabled")]]);
             Log::Any::Adapter->set(
                 {lexically=>\my $lex},
                 "Callback",
@@ -166,7 +173,10 @@ sub call {
                                "r" . length($fres) . " " . $fres : $fres);
             $writer->close;
         } else {
-            $respond->([200, ["Content-Type" => $ct], [$fres]]);
+            $respond->([
+                200, ["Content-Type" => $ct,
+                      "X-Riap-V" => "1.1.21",
+                  ], [$fres]]);
         }
     };
 }
@@ -252,6 +262,22 @@ user can just start using something like:
      http://host/api/SubModule?-riap-action=actions
  * This server uses Riap protocol for great autodiscoverability, for more info:
      https://metacpan.org/module/Riap
+
+=item * enable_loglevel => BOOL (default: 1)
+
+If client sends Riap request key C<loglevel> with a value larger than 0, then
+server choosing to support this feature must send C<X-Riap-Logging: enabled>
+HTTP response header and chunked response (as described in L<Riap::HTTP>). You
+can choose not to support this, by setting this configuration to 0.
+
+=item * enable_marklog => BOOL (default: 1)
+
+Only relevant if C<enable_loglevel> is true. If client sends Riap request key
+C<loglevel> with a value larger than 0 and C<marklog> set to true, then server
+choosing to support this feature must send C<X-Riap-Logging: marked> HTTP
+response header and chunked response with each chunk prepended (as described in
+L<Riap::HTTP> and the above description). You can choose not to support this, by
+setting this configuration to 0.
 
 =back
 
