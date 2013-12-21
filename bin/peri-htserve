@@ -173,13 +173,9 @@ _
             schema => ['str*'],
             summary => 'Protect with HTTP authentication, specify password',
         },
-        enable_loglevel => {
+        enable_logging => {
             schema  => ['bool', default=>1],
-            summary => 'Can be used to test server with no support for loglevel',
-        },
-        enable_marklog => {
-            schema  => ['bool', default=>1],
-            summary => 'Can be used to test server with no support for marklog',
+            summary => 'Can be used to test server with no support for logging',
         },
     },
     #'_perinci.sub.wrapper.validate_args' => 0,
@@ -270,8 +266,7 @@ sub serve {
 
         enable (
             "PeriAHS::Respond",
-            enable_loglevel => $args{enable_loglevel},
-            enable_marklog  => $args{enable_marklog},
+            enable_logging => $args{enable_logging},
         );
     };
 

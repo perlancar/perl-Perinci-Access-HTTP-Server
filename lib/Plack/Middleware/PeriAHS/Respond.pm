@@ -8,8 +8,7 @@ use Log::Any '$log';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
                                 add_text_tips
-                                enable_marklog
-                                enable_loglevel
+                                enable_logging
                         );
 
 use Log::Any::Adapter;
@@ -28,9 +27,8 @@ $Perinci::Result::Format::Enable_Cleansing = 1;
 sub prepare_app {
     my $self = shift;
 
-    $self->{add_text_tips}   //= 1;
-    $self->{enable_loglevel} //= 1;
-    $self->{enable_marklog}  //= 1;
+    $self->{add_text_tips}  //= 1;
+    $self->{enable_logging} //= 1;
 }
 
 sub format_result {
@@ -133,15 +131,14 @@ sub call {
         my $respond = shift;
 
         my $writer;
-        my $loglvl  = $self->{enable_loglevel} ? ($rreq->{'loglevel'} // 0) : 0;
-        my $marklog = $self->{enable_marklog}  ? $rreq->{'marklog'} : 0;
+        my $loglvl  = $self->{enable_logging} ? ($rreq->{'loglevel'} // 0) : 0;
         my $rres; #  short for riap response
         $env->{'periahs.start_action_time'} = [gettimeofday];
         if ($loglvl > 0) {
             $writer = $respond->([
                 200, ["Content-Type" => "text/plain",
-                      "X-Riap-V" => "1.1.21",
-                      "X-Riap-Logging" => ($marklog ? "marked":"enabled")]]);
+                      "X-Riap-V" => "1.1.22",
+                      "X-Riap-Logging" => 1]]);
             Log::Any::Adapter->set(
                 {lexically=>\my $lex},
                 "Callback",
@@ -154,7 +151,7 @@ sub call {
                     );
                     my $msg = join(
                         "",
-                        $marklog ? "l" . length($msg0) . " " : "",
+                        "l", length($msg0), " ",
                         $msg0);
                     $writer->write($msg);
                 },
@@ -169,13 +166,12 @@ sub call {
         my ($fres, $ct) = $self->format_result($rres, $env);
 
         if ($writer) {
-            $writer->write($marklog ?
-                               "r" . length($fres) . " " . $fres : $fres);
+            $writer->write("r" . length($fres) . " " . $fres);
             $writer->close;
         } else {
             $respond->([
                 200, ["Content-Type" => $ct,
-                      "X-Riap-V" => "1.1.21",
+                      "X-Riap-V" => "1.1.22",
                   ], [$fres]]);
         }
     };
@@ -208,11 +204,10 @@ middlewares.
 
 The result will also be put in C<$env->{"riap.response"}>.
 
-=head2 How loglevel and marklog works
+=head2 How logging works
 
-If marklog is turned on by Riap request (which is required if client wants to
-receive log messages interspersed with actual Riap response), the server will
-encode each part with:
+If Riap request key C<loglevel> is set to larger than 0 and the server chooses
+to support logging, the server will encode each part with:
 
 Log message:
 
@@ -263,21 +258,13 @@ user can just start using something like:
  * This server uses Riap protocol for great autodiscoverability, for more info:
      https://metacpan.org/module/Riap
 
-=item * enable_loglevel => BOOL (default: 1)
+=item * enable_logging => BOOL (default: 1)
 
 If client sends Riap request key C<loglevel> with a value larger than 0, then
-server choosing to support this feature must send C<X-Riap-Logging: enabled>
-HTTP response header and chunked response (as described in L<Riap::HTTP>). You
+server choosing to support this feature must send C<X-Riap-Logging: 1> HTTP
+response header and chunked response (as described in L<Riap::HTTP>) with each
+chunk prepended (as described in L<Riap::HTTP> and the above description). You
 can choose not to support this, by setting this configuration to 0.
-
-=item * enable_marklog => BOOL (default: 1)
-
-Only relevant if C<enable_loglevel> is true. If client sends Riap request key
-C<loglevel> with a value larger than 0 and C<marklog> set to true, then server
-choosing to support this feature must send C<X-Riap-Logging: marked> HTTP
-response header and chunked response with each chunk prepended (as described in
-L<Riap::HTTP> and the above description). You can choose not to support this, by
-setting this configuration to 0.
 
 =back
 
