@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.37     2014-03-21 (SHARYANTO)
+
+         - PeriAHS::ParseRequest middleware: add 'match_uri_errmsg'
+           configuration to show custom error message.
+
+
 0.36     2013-12-21 (SHARYANTO)
 
          - Support Riap::HTTP 1.1.22.
