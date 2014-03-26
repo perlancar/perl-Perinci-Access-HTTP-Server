@@ -382,6 +382,9 @@ sub call {
             $env, [500, "Required Riap request key '$_' has not been defined"]);
     }
 
+    # add uri prefix
+    $rreq->{uri} = "$self->{riap_uri_prefix}$rreq->{uri}";
+
     # special handling for php clients #2
     {
         last unless $self->{deconfuse_php_clients} &&
@@ -417,9 +420,6 @@ sub call {
             }
         }
     }
-
-    # add uri prefix
-    $rreq->{uri} = "$self->{riap_uri_prefix}$rreq->{uri}";
 
     # split, for convenience of other middlewares that might use it
 
