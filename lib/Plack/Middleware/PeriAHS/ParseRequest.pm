@@ -231,7 +231,7 @@ sub call {
 
     # get uri from 'match_uri' config
     my $mu  = $self->{match_uri};
-    if ($mu) {
+    if ($mu && !exists($rreq->{uri})) {
         my $uri = $env->{REQUEST_URI};
         my %m;
         if (ref($mu) eq 'ARRAY') {
@@ -304,9 +304,9 @@ sub call {
                 return errpage(
                     $env, [400, "Invalid Riap request key `$rk` (from form)"])
                     unless $rk =~ /\A\w+\z/;
-                $rreq->{$rk} //= $v;
+                $rreq->{$rk} = $v unless exists $rreq->{$rk};
             } else {
-                $rreq->{args}{$k} //= $v;
+                $rreq->{args}{$k} = $v unless exists $rreq->{args}{$k};
             }
         }
     }

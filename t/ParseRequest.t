@@ -106,6 +106,14 @@ test_ParseRequest_middleware(
                           fmt=>'json', args=>{}},
         },
         {
+            name      => 'args from form does not override args from body',
+            args      => [POST => '/api/Foo/bar?a=10&b=20&c=30&d=40',
+                          ['Content-Type'=>'application/json'],
+                          '{"a":1,"b":2,"c":null}'],
+            rreq      => {v=>1.1, action=>'call', uri=>'/Foo/bar',
+                          fmt=>'json', args=>{a=>1, b=>2, c=>undef, d=>40}},
+        },
+        {
             name      => 'match_uri',
             args      => [GET => '/x'],
             rreq      => undef,
