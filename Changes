@@ -1,5 +1,13 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.39     2014-03-26 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Don't let match_uri override 'uri' request key specified through
+           'X-Riap-Uri' header.
+
+
 0.38     2014-03-26 (SHARYANTO)
 
          [BUG FIXES]
