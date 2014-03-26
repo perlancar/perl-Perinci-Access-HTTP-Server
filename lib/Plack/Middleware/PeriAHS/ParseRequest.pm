@@ -421,8 +421,6 @@ sub call {
         }
     }
 
-    # split, for convenience of other middlewares that might use it
-
     $log->tracef("Riap request: %s", $rreq);
 
     # expose configuration for other middlewares
