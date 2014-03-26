@@ -1,5 +1,13 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.38     2014-03-26 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - PeriAHS::ParseRequest middleware: riap_uri_prefix must be prepended
+           before we do special handling for PHP clients.
+
+
 0.37     2014-03-21 (SHARYANTO)
 
          - PeriAHS::ParseRequest middleware: add 'match_uri_errmsg'
