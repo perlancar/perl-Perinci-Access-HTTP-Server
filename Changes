@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.40     2014-04-16 (SHARYANTO)
+
+         - Skip logging detail information (args & resp) for unimportant actions
+           (currently: list, info, meta) to reduce clutter.
+
+
 0.39     2014-03-26 (SHARYANTO)
 
          [BUG FIXES]
