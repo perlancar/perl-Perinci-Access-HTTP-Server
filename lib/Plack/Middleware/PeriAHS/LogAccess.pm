@@ -73,8 +73,17 @@ sub log_access {
 
     my $rreq = $env->{'riap.request'};
 
+    my $action = $rreq->{action} // "";
+    my $skip_args;
+    my $skip_resp;
+    if ($action =~ /\A(list|info|meta)\z/o) {
+        # skip logging details of unimportant actions
+        $skip_args = 1;
+        $skip_resp = 1;
+    }
+
     my ($args_s, $args_len, $args_partial);
-    if ($rreq->{args}) {
+    if ($rreq->{args} && !$skip_args) {
         $args_s = $json->encode($rreq->{args});
         $args_len = length($args_s);
         $args_partial = $args_len > $self->max_args_len;
@@ -88,7 +97,7 @@ sub log_access {
 
     my $res = $env->{'riap.response'};
     my ($resp_s, $resp_len, $resp_partial);
-    if ($res) {
+    if ($res && !$skip_resp) {
         $resp_s = $json->encode($res);
         $resp_len = length($resp_s);
         $resp_partial = $resp_len > $self->max_resp_len;
@@ -146,10 +155,10 @@ sub log_access {
         $env->{REMOTE_ADDR},
         $server_addr,
         $env->{REMOTE_USER} // "-",
-        _safe($rreq->{action} // "-"),
+        _safe($action),
         _safe($uri),
-        $args_len.($args_partial ? "p" : ""), $args_s,
-        $resp_len.($resp_partial ? "p" : ""), $resp_s,
+        ($skip_args ? "S" : $args_len.($args_partial ? "p" : "")), ($skip_args ? "?" : $args_s),
+        ($skip_resp ? "S" : $resp_len.($resp_partial ? "p" : "")), ($skip_resp ? "?" : $resp_s),
         $subt, $reqt,
         $extra,
     );
