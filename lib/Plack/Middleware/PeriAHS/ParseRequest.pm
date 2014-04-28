@@ -121,7 +121,7 @@ sub prepare_app {
 
     $self->{riap_client}       //= Perinci::Access::Schemeless->new(
         load => 0,
-        extra_wrapper_convert => {
+        set_function_properties => {
             #timeout => 300,
         },
         use_tx            => $self->{use_tx},
