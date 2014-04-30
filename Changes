@@ -1,5 +1,13 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.41     2014-04-30 (SHARYANTO)
+
+         - No functional changes.
+
+         - Adjust to Perinci::Access::Perl 0.66 (extra_wrapper_convert renamed
+           to set_function_properties).
+
+
 0.40     2014-04-16 (SHARYANTO)
 
          - Skip logging detail information (args & resp) for unimportant actions
