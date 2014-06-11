@@ -1,5 +1,17 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.43     2014-06-11 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - PeriAHS::LogAccess middleware: stringify Perl objects when logging,
+           to avoid JSON throwing exceptions when encountering objects (either
+           in arguments or function results).
+
+         - PeriAHS::Respond middleware: set -env locally so it doesn't interfere
+           with other modules, e.g. LogAccess (getting blessed refs).
+
+
 0.42     2014-06-11 (SHARYANTO)
 
          [NEW FEATURES]
