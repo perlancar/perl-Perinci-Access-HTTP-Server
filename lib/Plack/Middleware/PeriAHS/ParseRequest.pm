@@ -80,7 +80,8 @@ sub get_server_url {
     }
     my $port = $self->{server_port};
     unless (defined $port) {
-        $port = $2 ? $2 : ($env->{HTTPS} ? 443 : 80);
+        $port = $env->{HTTP_HOST} =~ /(.+):(.+)/ ? $2 :
+            ($env->{HTTPS} ? 443 : 80);
     }
     join("",
          ($env->{HTTPS} ? "https" : "http"), "://",
