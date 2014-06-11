@@ -70,6 +70,7 @@ sub log_access {
     }
 
     state $json = JSON->new->allow_nonref;
+    local *UNIVERSAL::TO_JSON = sub { "$_[0]" };
 
     my $rreq = $env->{'riap.request'};
 
