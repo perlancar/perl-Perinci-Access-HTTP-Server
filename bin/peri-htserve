@@ -307,13 +307,13 @@ Perinci::CmdLine->new(url => '/main/serve')->run;
  $ peri-htserve Foo::Bar Baz::*
 
  # you can now do
- $ curl 'http://localhost:5000/Baz/SubMod/func1?arg1=1&arg2=2'
+ $ curl 'http://localhost:5000/api/Baz/SubMod/func1?arg1=1&arg2=2'
  [200,"OK",{"The":"result","...":"..."}]
 
  # or use the Perl client
  $ perl -MPerinci::Access -e'
      my $pa = Perinci::Access->new;
-     my $res = $pa->request(call=>"http://localhost:5000/Foo/Bar/func2");'
+     my $res = $pa->request(call=>"http://localhost:5000/api/Foo/Bar/func2");'
 
 
  ### some other peri-htserve options:
@@ -336,7 +336,7 @@ For now, please see source code for more details (or --help).
 
 In raw HTTP, you can send complex argument by encoding it in JSON, e.g.:
 
- $ curl 'http://localhost:5000/Foo/Bar/func?array:j=[1,2,3]'
+ $ curl 'http://localhost:5000/api/Foo/Bar/func?array:j=[1,2,3]'
 
 Notice the ":j" suffix after parameter name.
 
