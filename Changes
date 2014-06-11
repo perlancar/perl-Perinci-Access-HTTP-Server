@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.44     2014-06-11 (SHARYANTO)
+
+         - No functinal changes.
+
+         - Forgot to set JSON's allow_blessed & convert_blessed. D'oh.
+
+
 0.43     2014-06-11 (SHARYANTO)
 
          [ENHANCEMENTS]
