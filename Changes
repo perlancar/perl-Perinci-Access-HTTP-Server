@@ -1,5 +1,16 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.42     2014-06-11 (SHARYANTO)
+
+         [NEW FEATURES]
+
+         - PeriAHS::Respond middleware: Add configuration 'pass_psgi_env'
+
+         [BUG FIXES]
+
+         - Fix logic bug that sets port to default 80/443.
+
+
 0.41     2014-04-30 (SHARYANTO)
 
          - No functional changes.
