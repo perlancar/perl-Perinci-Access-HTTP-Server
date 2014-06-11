@@ -136,7 +136,6 @@ sub call {
         my $loglvl  = $self->{enable_logging} ? ($rreq->{'loglevel'} // 0) : 0;
         my $rres; #  short for riap response
         $env->{'periahs.start_action_time'} = [gettimeofday];
-        local $rreq->{args}{-env} = $env if $self->{pass_psgi_env};
         if ($loglvl > 0) {
             $writer = $respond->([
                 200, ["Content-Type" => "text/plain",
@@ -159,9 +158,15 @@ sub call {
                     $writer->write($msg);
                 },
             );
-            $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
+            {
+                local $rreq->{args}{-env} = $env if $self->{pass_psgi_env};
+                $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
+            }
         } else {
-            $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
+            {
+                local $rreq->{args}{-env} = $env if $self->{pass_psgi_env};
+                $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
+            }
         }
         $env->{'periahs.finish_action_time'} = [gettimeofday];
 
