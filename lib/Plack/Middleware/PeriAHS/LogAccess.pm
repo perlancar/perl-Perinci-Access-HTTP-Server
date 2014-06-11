@@ -69,7 +69,7 @@ sub log_access {
         $server_addr = "tcp:$env->{SERVER_PORT}";
     }
 
-    state $json = JSON->new->allow_nonref;
+    state $json = JSON->new->allow_nonref->allow_blessed->convert_blessed;
     local *UNIVERSAL::TO_JSON = sub { "$_[0]" };
 
     my $rreq = $env->{'riap.request'};
