@@ -25,6 +25,10 @@ $Perinci::Result::Format::Enable_Decoration = 0;
 # to allow in-place cleansing of data when formatter can't handle data
 $Perinci::Result::Format::Enable_Cleansing = 1;
 
+# XXX for high-performance app, since cleansing is a bit heavy (e.g. only
+# 11k/sec on my laptop, while encoding to json is >100k/sec) perhaps cache the
+# cleansed result.
+
 sub prepare_app {
     my $self = shift;
 
