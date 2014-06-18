@@ -62,6 +62,7 @@ sub format_result {
     for ($fmt, "json") { # fallback to json if unknown format
         $formatter = $Perinci::Result::Format::Formats{$_};
         if ($formatter) {
+            $log->tracef("formatting result using %s", $formatter);
             $fmt = $_;
             last;
         }
