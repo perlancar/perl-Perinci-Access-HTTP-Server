@@ -131,6 +131,10 @@ _
             schema => ['str' => {}],
             summary => 'Will be passed to Gepok',
         },
+        gepok_start_servers => {
+            schema => ['int' => {}],
+            summary => 'Will be passed to Gepok',
+        },
         daemonize => {
             schema => ['bool' => {
                 default => 0,
@@ -283,8 +287,8 @@ sub serve {
             $args{gepok_http_ports} = "*:5000";
         }
         for (qw/http_port https_ports unix_sockets
-                ssl_key_file ssl_cert_file/) {
-            push @argv, "--$_", $args{"gepok_$_"} if $args{"gepok_$_"};
+                ssl_key_file ssl_cert_file start_servers/) {
+            push @argv, "--$_", $args{"gepok_$_"} if defined $args{"gepok_$_"};
         }
     }
     push @argv, "-D" if $args{daemonize};
