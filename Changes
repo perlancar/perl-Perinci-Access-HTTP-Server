@@ -1,5 +1,14 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.47     2014-06-20 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Instead of using Perinci::Result::Format's $Enable_Cleansing, do
+           response cleansing ourselves because we'll need it somewhere else
+           e.g. in access log.
+
+
 0.46     2014-06-20 (SHARYANTO)
 
          - peri-htserve: Add options --gepok-start-servers, --metadb (for
