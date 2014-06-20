@@ -12,22 +12,22 @@ use Plack::Util::Accessor qw(
                                 pass_psgi_env
                         );
 
+use Data::Clean::JSON;
 use Log::Any::Adapter;
 use Perinci::Result::Format 0.31;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
 
 # VERSION
+# DATE
+
+# we're doing the cleansing of Riap response ourselves instead of delegating to
+# Perinci::Result::Format, because we might need the cleansed elsewhere (e.g.
+# when doing access logging).
+my $cleanser = Data::Clean::JSON->get_cleanser;
 
 # to avoid sending colored YAML/JSON output
 $Perinci::Result::Format::Enable_Decoration = 0;
-
-# to allow in-place cleansing of data when formatter can't handle data
-$Perinci::Result::Format::Enable_Cleansing = 1;
-
-# XXX for high-performance app, since cleansing is a bit heavy (e.g. only
-# 11k/sec on my laptop, while encoding to json is >100k/sec) perhaps cache the
-# cleansed result.
 
 sub prepare_app {
     my $self = shift;
@@ -176,6 +176,7 @@ sub call {
                 $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
             }
         }
+        $cleanser->clean_in_place($rres);
         $env->{'periahs.finish_action_time'} = [gettimeofday];
 
         $env->{'riap.response'} = $rres;
