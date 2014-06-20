@@ -169,9 +169,6 @@ sub call {
             }
         } else {
             {
-                # if we die here, Plack won't show us (traps this somewhere up),
-                # so we need to display using this hack
-                #$SIG{__WARN__} = $SIG{__DIE__} = sub { use Data::Dump; open F, ">>/tmp/periahs.log"; say F @_; close F };
                 local $rreq->{args}{-env} = $env if $self->{pass_psgi_env};
                 $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
             }
