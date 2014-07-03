@@ -60,6 +60,10 @@ _
 Either specify exact module name or one using wildcard (e.g. 'Foo::Bar::*', in
 which Module::List will be used to load all modules under 'Foo::Bar::').
 
+You can also add `,noload` to skip loading the module. Usually this is because
+the package name is included/created by another module, and you want to allow
+access to this package.
+
 _
         },
         riap_access_log_path => {
@@ -236,10 +240,13 @@ sub serve {
     }
 
     my @modules;
+    my @modules_noload;
     for my $m (@{$args{modules}}) {
         if ($m =~ /(.+::)\*$/) {
             my $res = list_modules($1, {list_modules=>1});
             push @modules, keys %$res;
+        } elsif ($m =~ s/,noload$//) {
+            push @modules_noload, $m;
         } else {
             push @modules, $m;
         }
@@ -285,7 +292,7 @@ sub serve {
         load $class;
         $pa = $class->new(
             load => 0,
-            allow_paths => [map {s!::!/!g; "/$_"} @modules],
+            allow_paths => [map {s!::!/!g; "/$_"} @modules, @modules_noload],
             %extra_opts,
         );
     }
