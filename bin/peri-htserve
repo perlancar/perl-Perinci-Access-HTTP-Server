@@ -11,7 +11,7 @@ use Perinci::Access::Base::Patch::PeriAHS;
 use File::HomeDir;
 use File::Write::Rotate;
 use Module::List qw(list_modules);
-use Module::Load;
+use Module::Load qw(load autoload);
 use Perinci::CmdLine ();
 use Perinci::Gen::ForModule qw(gen_meta_for_module);
 use Plack::Builder;
@@ -156,6 +156,16 @@ use `perl` and use its `-I` option.
 _
             cmdline_aliases => {I=>{}},
         },
+        use => {
+            schema => ['array' => of => 'str*'],
+            summary => 'Use a Perl module, a la Perl\'s -M',
+            cmdline_aliases => {M=>{}},
+        },
+        require => {
+            schema => ['array' => of => 'str*'],
+            summary => 'Require a Perl module, a la Perl\'s -m',
+            cmdline_aliases => {m=>{}},
+        },
 
         parse_form => {
             schema => ['bool'],
@@ -210,6 +220,19 @@ sub serve {
     for my $dir (@{ $args{library} // [] }) {
         require lib;
         lib->import($dir);
+    }
+
+    for my $use (@{ $args{use} // [] }) {
+        if (my ($mod, $imp) = $use =~ /(.+?)=(.+)/) {
+            load $mod;
+            $mod->import(split /,/, $imp);
+        } else {
+            autoload $use;
+        }
+    }
+
+    for my $req (@{ $args{require} // [] }) {
+        load $req;
     }
 
     my @modules;
