@@ -1,5 +1,14 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.48     2014-07-03 (SHARYANTO)
+
+         - peri-htserve: Add options -m & -M.
+
+         - peri-htserve: Allow ',noload' suffix to module, to allow specifying a
+           package and not loading the module (just so it is allowed to be
+           accessed).
+
+
 0.47     2014-06-20 (SHARYANTO)
 
          [BUG FIXES]
