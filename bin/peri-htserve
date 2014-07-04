@@ -46,7 +46,7 @@ Plack::Middleware::PeriAHS::* middlewares directly.
 
 _
     args => {
-        modules => {
+        module_or_package => {
             schema => ['array*' => {
                 of => 'str*',
                 min_len => 1,
@@ -54,17 +54,36 @@ _
             req => 1,
             pos => 0,
             greedy => 1,
-            summary => 'List of modules to load',
+            summary => 'List of modules to load (or package to allow and search)',
             description => <<'_',
 
-Either specify exact module name or one using wildcard (e.g. 'Foo::Bar::*', in
-which Module::List will be used to load all modules under 'Foo::Bar::').
-
-You can also add `,noload` to skip loading the module. Usually this is because
-the package name is included/created by another module, and you want to allow
-access to this package.
+Either specify exact module name like `Foo::Bar`, or a wildcard pattern of
+modules like `Foo::Bar::*` (in which `Module::List` will be used to load all
+modules under `Foo::Bar::`) or a package name using `+Foo::Bar` syntax. If you
+specify package name, module with the same name will not be loaded. Can be used
+to allow and search an already loaded package (e.g. through `-M` or through
+other modules).
 
 _
+            cmdline_on_getopt => sub {
+                my %args = @_;
+                my $val  = $args{value};
+                my $args = $args{args};
+
+                # put it here for function later
+                $args->{-modules}  //= [];
+                $args->{-packages} //= [];
+
+                if ($val =~ /(.+::)\*$/) {
+                    $log->debugf('Listing all modules in %s ...', $val);
+                    my $res = list_modules($1, {list_modules=>1});
+                    push @{ $args->{-modules}  }, sort keys %$res;
+                } elsif ($val =~ s/^\+//) {
+                    push @{ $args->{-packages} }, $val;
+                } else {
+                    push @{ $args->{-modules}  }, $val;
+                }
+            },
         },
         riap_access_log_path => {
             schema => ['str' => {}],
@@ -159,16 +178,35 @@ use `perl` and use its `-I` option.
 
 _
             cmdline_aliases => {I=>{}},
+            cmdline_on_getopt => sub {
+                my %args = @_;
+                require lib;
+                lib->import($args{value});
+            },
         },
         use => {
             schema => ['array' => of => 'str*'],
             summary => 'Use a Perl module, a la Perl\'s -M',
             cmdline_aliases => {M=>{}},
+            cmdline_on_getopt => sub {
+                my %args = @_;
+                my $val = $args{value};
+                if (my ($mod, $imp) = $val =~ /(.+?)=(.+)/) {
+                    load $mod;
+                    $mod->import(split /,/, $imp);
+                } else {
+                    autoload $val;
+                }
+            },
         },
         require => {
             schema => ['array' => of => 'str*'],
             summary => 'Require a Perl module, a la Perl\'s -m',
             cmdline_aliases => {m=>{}},
+            cmdline_on_getopt => sub {
+                my %args = @_;
+                load $args{val};
+            },
         },
 
         parse_form => {
@@ -215,44 +253,14 @@ sub serve {
     my %args = @_; # VXALIDATE_ARGS
 
     my $server = $args{server};
-    #$log->tracef("TMP: modules: %s", $args{modules});
+    #$log->tracef("TMP: modules/packages: %s", $args{module_or_package});
     $log->infof("Starting server (using %s) ...", $server);
 
     my $riap_access_log_path = $args{riap_access_log_path} //
         File::HomeDir->my_home . "/peri-htserve-riap_access.log";
 
-    for my $dir (@{ $args{library} // [] }) {
-        require lib;
-        lib->import($dir);
-    }
-
-    for my $use (@{ $args{use} // [] }) {
-        if (my ($mod, $imp) = $use =~ /(.+?)=(.+)/) {
-            load $mod;
-            $mod->import(split /,/, $imp);
-        } else {
-            autoload $use;
-        }
-    }
-
-    for my $req (@{ $args{require} // [] }) {
-        load $req;
-    }
-
-    my @modules;
-    my @modules_noload;
-    for my $m (@{$args{modules}}) {
-        if ($m =~ /(.+::)\*$/) {
-            my $res = list_modules($1, {list_modules=>1});
-            push @modules, keys %$res;
-        } elsif ($m =~ s/,noload$//) {
-            push @modules_noload, $m;
-        } else {
-            push @modules, $m;
-        }
-    }
-    $log->debugf("Modules to load: %s", \@modules);
-    for my $m (@modules) {
+    $log->debugf("Modules to load: %s", $args{-modules});
+    for my $m (@{$args{-modules}}) {
         $log->infof("Loading module %s ...", $m);
         eval { load $m };
         return [500, "Failed to load module $m: $@"] if $@;
@@ -270,6 +278,8 @@ sub serve {
             histories => $args{riap_access_log_histories},
         );
     }
+
+    my @pkgs = (@{ $args{-modules} // [] }, @{ $args{-packages} // [] });
 
     # let's only allow access to perl modules (and not other schemes like http).
     # let's not dynamically load modules except the ones explicitly specified
@@ -292,7 +302,7 @@ sub serve {
         load $class;
         $pa = $class->new(
             load => 0,
-            allow_paths => [map {s!::!/!g; "/$_"} @modules, @modules_noload],
+            allow_paths => [map {s!::!/!g; "/$_"} @pkgs],
             %extra_opts,
         );
     }
@@ -336,10 +346,15 @@ sub serve {
 
     my @argv;
     push @argv, "-s", $server;
+    my @root_urls; # for hint
     if ($server eq 'Starman') {
         for (qw/host port/) {
             push @argv, "--$_", $args{"starman_$_"} if $args{"starman_$_"};
         }
+
+        my $host = $args{starman_host} // 'localhost';
+        my $port = $args{starman_port} // 8080;
+        push @root_urls, "http://$host:$port/";
     } else {
         if (!$args{gepok_http_ports} &&
                 !$args{gepok_https_ports} &&
@@ -350,7 +365,49 @@ sub serve {
                 ssl_key_file ssl_cert_file start_servers/) {
             push @argv, "--$_", $args{"gepok_$_"} if defined $args{"gepok_$_"};
         }
+
+        my ($host, $port) = @_;
+        if ($args{gepok_http_ports}) {
+            if ($args{gepok_http_ports} =~ /(.+?):(\d+)/) {
+                $host = $1; $host = 'localhost' if $host eq '*';
+                $port = $2;
+            } elsif ($args{gepok_http_ports} =~ /(\d+)/) {
+                $host = 'localhost';
+                $port = $1;
+            }
+            push @root_urls, "http://$host:$port/";
+        }
+        if ($args{gepok_https_ports}) {
+            if ($args{gepok_https_ports} =~ /(.+?):(\d+)/) {
+                $host = $1; $host = 'localhost' if $host eq '*';
+                $port = $2;
+            } elsif ($args{gepok_https_ports} =~ /(\d+)/) {
+                $host = 'localhost';
+                $port = $1;
+            }
+            push @root_urls, "https://$host:$port/";
+        }
+        if ($args{gepok_unix_sockets}) {
+            if ($args{gepok_unix_sockets} =~ /(.+?)(?:,|\z)/) {
+                push @root_urls, "http:$1//";
+            }
+        }
     }
+
+    # display hint for user
+    if (@root_urls) {
+        my @ep_urls; # api endpoints
+        for my $root_url (@root_urls) {
+            for my $pkg (@pkgs) {
+                my $pkgp = $pkg; $pkgp =~ s!::!/!g;
+                push @ep_urls, $root_url . "api/$pkgp/";
+            }
+        }
+        say "Try accessing one of the following URLs with curl/riap/etc:";
+        print map { "- $_\n" } @ep_urls;
+        say "";
+    }
+
     push @argv, "-D" if $args{daemonize};
     my $runner = Plack::Runner->new;
     $runner->parse_options(@argv);
