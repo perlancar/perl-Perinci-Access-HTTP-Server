@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.50     2014-07-22 (SHARYANTO)
+
+         - Switch CLI scripts from using Perinci::CmdLine to
+           Perinci::CmdLine::Any to reduce size of dependencies.
+
+
 0.49     2014-07-04 (SHARYANTO)
 
          [INCOMPATIBLE CHANGES]
