@@ -247,7 +247,7 @@ client.
 _
         },
     },
-    #'_perinci.sub.wrapper.validate_args' => 0,
+    'x.perinci.sub.wrapper.disable_validate_args' => 1,
 };
 sub serve {
     my %args = @_; # VXALIDATE_ARGS
