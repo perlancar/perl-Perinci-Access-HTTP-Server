@@ -173,6 +173,7 @@ sub call {
                 $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
             }
         }
+        insert_riap_stuffs_to_res($rres, $rreq->{v});
         $cleanser->clean_in_place($rres);
         $env->{'periahs.finish_action_time'} = [gettimeofday];
 

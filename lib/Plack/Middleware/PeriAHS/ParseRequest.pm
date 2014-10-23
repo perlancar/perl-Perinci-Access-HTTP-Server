@@ -1,10 +1,14 @@
 package Plack::Middleware::PeriAHS::ParseRequest;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
 use Log::Any '$log';
 
+use Perinci::AccessUtil qw(insert_riap_stuffs_to_res decode_args_in_riap_req);
 use Perinci::Access::Base::Patch::PeriAHS;
 
 use parent qw(Plack::Middleware);
@@ -35,8 +39,6 @@ use Perinci::Sub::GetArgs::Array qw(get_args_from_array);
 use Plack::Util::PeriAHS qw(errpage);
 use Scalar::Util qw(blessed);
 use URI::Escape;
-
-# VERSION
 
 # retun ($success?, $errmsg, $res)
 sub __parse_json {
@@ -421,6 +423,9 @@ sub call {
             }
         }
     }
+
+    # Riap 1.2: decode base64-encoded args
+    decode_args_in_riap_req($rreq);
 
     $log->tracef("Riap request: %s", $rreq);
 
