@@ -1,5 +1,8 @@
 package Plack::Middleware::PeriAHS::Respond;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -12,14 +15,12 @@ use Plack::Util::Accessor qw(
                                 pass_psgi_env
                         );
 
+use Perinci::AccessUtil qw(insert_riap_stuffs_to_res);
 use Data::Clean::JSON;
 use Log::Any::Adapter;
 use Perinci::Result::Format 0.31;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday);
-
-# VERSION
-# DATE
 
 # we're doing the cleansing of Riap response ourselves instead of delegating to
 # Perinci::Result::Format, because we might need the cleansed elsewhere (e.g.
