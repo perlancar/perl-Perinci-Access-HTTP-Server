@@ -68,6 +68,11 @@ sub format_result {
             last;
         }
     }
+
+    # do Riap 1.2 stuffs, but only encode binary result if we're sending as
+    # JSON, because the other formats are binary safe
+    insert_riap_stuffs_to_res($rres, $rreq->{v}, undef, $fmt =~ /json/);
+
     my $ct = $formatter->[1];
 
     my $fres = Perinci::Result::Format::format($rres, $fmt);
@@ -174,7 +179,6 @@ sub call {
                 $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
             }
         }
-        insert_riap_stuffs_to_res($rres, $rreq->{v});
         $cleanser->clean_in_place($rres);
         $env->{'periahs.finish_action_time'} = [gettimeofday];
 
