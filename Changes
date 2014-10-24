@@ -1,5 +1,11 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.54    2014-10-24 (PERLANCAR)
+
+	- Only base64-encode binary result when formatting as JSON, as the
+	  other formats are binary safe.
+
+
 0.53    2014-10-23 (PERLANCAR)
 
 	- No functional changes.
