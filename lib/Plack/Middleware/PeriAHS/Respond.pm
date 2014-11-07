@@ -179,7 +179,7 @@ sub call {
                 $rres = $pa->request($rreq->{action} => $rreq->{uri}, $rreq);
             }
         }
-        $cleanser->clean_in_place($rres);
+        $rres = $cleanser->clone_and_clean($rres);
         $env->{'periahs.finish_action_time'} = [gettimeofday];
 
         $env->{'riap.response'} = $rres;
