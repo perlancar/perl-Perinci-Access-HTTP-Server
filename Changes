@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.55    2014-11-07 (PERLANCAR)
+
+	- Use clone_and_clean() for cleaning results instead of clean_in_place()
+          for safety, function might return references to persistent object/data
+          etc (e.g. for debugging) that we don't want to clean.
+
+
 0.54    2014-10-24 (PERLANCAR)
 
 	- Only base64-encode binary result when formatting as JSON, as the
