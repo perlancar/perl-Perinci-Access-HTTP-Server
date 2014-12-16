@@ -1,4 +1,8 @@
+
 #!perl
+
+# DATE
+# VERSION
 
 use 5.010;
 use strict;
@@ -16,8 +20,6 @@ use Perinci::CmdLine::Any;
 use Perinci::Gen::ForModule qw(gen_meta_for_module);
 use Plack::Builder;
 use Plack::Runner;
-
-# VERSION
 
 our %SPEC;
 
@@ -419,7 +421,7 @@ sub serve {
 
 Perinci::CmdLine::Any->new(url => '/main/serve')->run;
 
-#ABSTRACT: Serve Perl modules over HTTP(S) using the Riap::HTTP protocol
+#ABSTRACT:
 #PODNAME:
 
 =head1 SYNOPSIS
