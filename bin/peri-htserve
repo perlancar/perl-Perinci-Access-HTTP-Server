@@ -420,7 +420,7 @@ sub serve {
 Perinci::CmdLine::Any->new(url => '/main/serve')->run;
 
 #ABSTRACT: Serve Perl modules over HTTP(S) using the Riap::HTTP protocol
-#PODNAME: peri-htserve
+#PODNAME:
 
 =head1 SYNOPSIS
 
