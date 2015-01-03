@@ -1,4 +1,3 @@
-
 #!perl
 
 # DATE
@@ -462,17 +461,6 @@ In raw HTTP, you can send complex argument by encoding it in JSON, e.g.:
  $ curl 'http://localhost:5000/api/Foo/Bar/func?array:j=[1,2,3]'
 
 Notice the ":j" suffix after parameter name.
-
-
-=head1 TODO
-
-=over 4
-
-=item * Pass more Plackup options.
-
-=item * Pass more PSGI server options.
-
-=back
 
 
 =head1 SEE ALSO
