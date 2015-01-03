@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.56    2015-01-03 (PERLANCAR)
+
+	- No functional changes.
+
+	- Rebuild (Generate TODO.md).
+
+
 0.55    2014-11-07 (PERLANCAR)
 
 	- Use clone_and_clean() for cleaning results instead of clean_in_place()
