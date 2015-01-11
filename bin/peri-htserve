@@ -253,7 +253,7 @@ _
 sub serve {
     my %args = @_; # VXALIDATE_ARGS
 
-    my $server = $args{server};
+    my $server = $args{server} // 'Gepok';
     #$log->tracef("TMP: modules/packages: %s", $args{module_or_package});
     $log->infof("Starting server (using %s) ...", $server);
 
