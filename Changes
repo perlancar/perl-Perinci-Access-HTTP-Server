@@ -1,5 +1,10 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.57    2015-04-12 (PERLANCAR)
+
+	- Split peri-htserve CLI to App-PerinciUtils distribution.
+
+
 0.56    2015-01-03 (PERLANCAR)
 
 	- No functional changes.
