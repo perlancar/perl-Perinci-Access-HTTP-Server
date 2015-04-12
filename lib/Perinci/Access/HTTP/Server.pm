@@ -18,10 +18,10 @@ set of I<middlewares> in Plack::Middleware::PeriAHS::*, really) to implement
 L<Riap::HTTP> server. You compose the middlewares, configuring each one and
 including only the ones you need, in your C<app.psgi>, to create an API service.
 
-A simple command-line utility, L<peri-htserve>, is included. This utility runs a
-provided PSGI application with the L<Gepok> or L<Starman> PSGI I<server> so you
-can quickly export some Perl modules/functions as an API service with one line
-of command.
+A simple command-line utility, L<peri-htserve>, is also available (distributed
+separately, see L<App::PerinciUtils>). This utility runs a provided PSGI
+application with the L<Gepok> or L<Starman> PSGI I<server> so you can quickly
+export some Perl modules/functions as an API service with one line of command.
 
 To get started, currently see the source code of B<peri-htserve> to see the
 basic structure of the PSGI application. Also see each middleware's
@@ -35,8 +35,8 @@ documentation.
 The point of L<Riap::HTTP> is to expose metadata over HTTP, so it's best that
 you write your metadata for every API function you want to expose.
 
-However, there are tools like L<Perinci::Gen::ForModule> (which the example
-script B<peri-htserve> uses) which can generate some (generic) metadata for your
+However, there are tools like L<Perinci::Gen::ForModule> (which the
+B<peri-htserve> CLI uses) which can generate some (generic) metadata for your
 existing modules.
 
 =head2 How can I customize URL?
