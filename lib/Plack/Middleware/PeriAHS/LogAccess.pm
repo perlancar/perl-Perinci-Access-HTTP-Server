@@ -1,5 +1,8 @@
 package Plack::Middleware::PeriAHS::LogAccess;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -12,13 +15,11 @@ use Plack::Util::Accessor qw(
                                 max_resp_len
                         );
 
-use JSON;
+use JSON::MaybeXS;
 use Plack::Util;
 use POSIX;
 use Scalar::Util qw(blessed);
 use Time::HiRes qw(gettimeofday tv_interval);
-
-# VERSION
 
 sub prepare_app {
     my $self = shift;
@@ -69,7 +70,7 @@ sub log_access {
         $server_addr = "tcp:$env->{SERVER_PORT}";
     }
 
-    state $json = JSON->new->allow_nonref->allow_blessed->convert_blessed;
+    state $json = JSON::MaybeXS->new->allow_nonref->allow_blessed->convert_blessed;
     local *UNIVERSAL::TO_JSON = sub { "$_[0]" };
 
     my $rreq = $env->{'riap.request'};

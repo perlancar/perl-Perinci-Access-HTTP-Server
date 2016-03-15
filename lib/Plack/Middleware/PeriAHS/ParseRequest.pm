@@ -43,11 +43,11 @@ use URI::Escape;
 # retun ($success?, $errmsg, $res)
 sub __parse_json {
     require Data::Clean::FromJSON;
-    require JSON;
+    require JSON::MaybeXS;
 
     my $str = shift;
 
-    state $json = JSON->new->allow_nonref;
+    state $json = JSON::MaybeXS->new->allow_nonref;
 
     # to rid of those JSON::XS::Boolean objects which currently choke
     # Data::Sah-generated validator code. in the future Data::Sah can be

@@ -1,5 +1,8 @@
 package Plack::Util::PeriAHS;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -8,11 +11,9 @@ use Log::Any '$log';
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(errpage);
 
-# VERSION
+use JSON::MaybeXS;
 
-use JSON;
-
-my $json = JSON->new->allow_nonref;
+my $json = JSON::MaybeXS->new->allow_nonref;
 
 sub errpage {
     my ($env, $rres) = @_;
