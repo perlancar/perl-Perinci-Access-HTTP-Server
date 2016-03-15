@@ -1,5 +1,12 @@
 Revision history for Perinci-Access-HTTP-Server
 
+0.60    2016-03-16 (PERLANCAR)
+
+	- No functional changes.
+
+	- Replace JSON with JSON::MaybeXS.
+
+
 0.59    2015-09-03 (PERLANCAR)
 
 	- No functional changes.
