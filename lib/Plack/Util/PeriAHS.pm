@@ -6,7 +6,7 @@ package Plack::Util::PeriAHS;
 use 5.010;
 use strict;
 use warnings;
-use Log::Any '$log';
+use Log::ger;
 
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(errpage);
@@ -42,7 +42,7 @@ sub errpage {
         ];
     }
 
-    $log->tracef("Returning error page: %s", $pres);
+    log_trace("Returning error page: %s", $pres);
     $pres;
 }
 

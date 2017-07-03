@@ -3,7 +3,7 @@ package Plack::Middleware::PeriAHS::CheckAccess;
 use 5.010;
 use strict;
 use warnings;
-use Log::Any '$log';
+use Log::ger;
 
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw(
@@ -29,7 +29,7 @@ sub prepare_app {
 }
 
 sub call {
-    $log->tracef("=> PeriAHS::CheckAccess middleware");
+    log_trace("=> PeriAHS::CheckAccess middleware");
 
     my ($self, $env) = @_;
 

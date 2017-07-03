@@ -6,7 +6,7 @@ package Plack::Middleware::PeriAHS::ParseRequest;
 use 5.010;
 use strict;
 use warnings;
-use Log::Any '$log';
+use Log::ger;
 
 use Perinci::AccessUtil qw(insert_riap_stuffs_to_res decode_args_in_riap_req);
 use Perinci::Access::Base::Patch::PeriAHS;
@@ -134,12 +134,12 @@ sub prepare_app {
     $self->{php_clients_ua_re} //= qr(Phinci|/php|php/)i;
     $self->{deconfuse_php_clients} //= 1;
 
-    $log->tracef("Prepared PeriAHS::ParseRequest middleware: %s", $self);
+    log_trace("Prepared PeriAHS::ParseRequest middleware: %s", $self);
 }
 
 sub call {
     my ($self, $env) = @_;
-    $log->tracef("=> PeriAHS::ParseRequest middleware");
+    log_trace("=> PeriAHS::ParseRequest middleware");
 
     my $rreq = $env->{"riap.request"} //= {};
 
@@ -427,7 +427,7 @@ sub call {
     # Riap 1.2: decode base64-encoded args
     decode_args_in_riap_req($rreq);
 
-    $log->tracef("Riap request: %s", $rreq);
+    log_trace("Riap request: %s", $rreq);
 
     # expose configuration for other middlewares
     $env->{"middleware.PeriAHS.ParseRequest"} = $self;
