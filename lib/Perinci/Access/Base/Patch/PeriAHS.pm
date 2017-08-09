@@ -1,5 +1,8 @@
 package Perinci::Access::Base::Patch::PeriAHS;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -7,8 +10,6 @@ use warnings;
 use Module::Patch 0.12 qw();
 use base qw(Module::Patch);
 use Perinci::Result::Format;
-
-# VERSION
 
 sub patch_data {
     return {
