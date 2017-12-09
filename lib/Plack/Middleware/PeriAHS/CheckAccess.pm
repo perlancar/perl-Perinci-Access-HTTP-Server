@@ -1,6 +1,9 @@
 package Plack::Middleware::PeriAHS::CheckAccess;
 
-use 5.010;
+# DATE
+# VERSION
+
+use 5.010001;
 use strict;
 use warnings;
 use Log::ger;
@@ -16,10 +19,8 @@ use Plack::Util::Accessor qw(
                                 deny_action
                         );
 use Plack::Util::PeriAHS qw(errpage);
-use SHARYANTO::Array::Util qw(match_array_or_regex);
+use String::Util::Match qw(match_array_or_regex);
 use URI::Split qw(uri_split);
-
-# VERSION
 
 sub prepare_app {
     my $self = shift;

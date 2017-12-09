@@ -7,7 +7,7 @@ use 5.010;
 use strict;
 use warnings;
 
-use Module::Patch 0.12 qw();
+use Module::Patch 0.26 qw();
 use base qw(Module::Patch);
 use Perinci::Result::Format;
 
